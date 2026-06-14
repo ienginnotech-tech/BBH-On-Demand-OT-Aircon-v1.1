@@ -285,6 +285,7 @@ tr:hover td{background:#FAFBFF}
     </div>
     <div class="tb-right">
       <div class="upill">👤 <span id="tb-user">—</span></div>
+      <button onclick="globalRefresh()" style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:7px;padding:5px 11px;font-size:12px;cursor:pointer;transition:.2s;font-weight:600" id="refresh-btn" title="รีเฟรชข้อมูล">🔄</button>
       <button class="btnout" onclick="doLogout()">ออก</button>
     </div>
   </div>
@@ -340,7 +341,6 @@ tr:hover td{background:#FAFBFF}
           <div class="sh-sub">Admin Helpdesk — Acknowledge / มอบหมายช่าง / Manager Approve</div>
         </div>
         <div style="display:flex;gap:6px">
-          <button class="btn btn-o btn-sm" onclick="loadBuildingData()">🔄 Refresh</button>
           <button class="btn btn-p btn-sm" onclick="openMod('mod-assign')">＋ มอบหมายงาน</button>
         </div>
       </div>
@@ -392,7 +392,7 @@ tr:hover td{background:#FAFBFF}
           <div class="sh-title">🔧 งาน OT ที่ได้รับมอบหมาย</div>
           <div class="sh-sub">บันทึกเปิด/ปิด ระบบ Aircon — Engineering Team</div>
         </div>
-        <button class="btn btn-o btn-sm" onclick="loadEngData()">🔄 Refresh</button>
+
       </div>
 
       <div class="stats">
@@ -428,7 +428,7 @@ tr:hover td{background:#FAFBFF}
           <option value="">ทุก Building</option>
           <option>BTE</option><option>BTB</option><option>UBCII</option>
         </select>
-        <button class="btn btn-p btn-sm" onclick="loadCSData()">🔍 โหลดข้อมูล</button>
+        <button class="btn btn-p btn-sm" onclick="globalRefresh()">🔄 โหลดข้อมูล</button>
         <button class="btn btn-o btn-sm" onclick="exportCSV()">⬇ Export CSV</button>
         <button class="btn btn-o btn-sm" onclick="printReport()">🖨 Print</button>
       </div>
@@ -1152,7 +1152,84 @@ async function loadAllLive(){
 
 function updateSyncStatus(){
   const bar = document.getElementById('sync-status-text');
-  if(bar) bar.textContent = USE_LIVE_API ? '🟢 Live — Google Sheets' : '🟡 Embedded Data (ตั้งค่า API URL เพื่อ Sync จริง)';
+  if(bar) bar.textContent = USE_LIVE_API ? '🟢 Live — Google Sheets' : '🟡 Embedded Data';
+}
+
+async function globalRefresh(){
+  const btn = document.getElementById('refresh-btn');
+  if(btn){ btn.textContent='⏳'; btn.disabled=true; }
+  showSync(true);
+
+  // ตรวจว่า Module ไหน active อยู่ → refresh เฉพาะ Module นั้น
+  const activeTab = document.querySelector('.ntab.active');
+  const tabLabel = activeTab ? activeTab.textContent.trim() : '';
+
+  try {
+    if(USE_LIVE_API){
+      // โหลดข้อมูล Live จาก Google Sheets
+      if(tabLabel.includes('Tenant') || tabLabel.includes('🏢')){
+        const r = await apiGET({action:'readOps'});
+        if(r){
+          gData.tenantReqs = r.tenantReqs || gData.tenantReqs;
+          renderTenantTable(gData.tenantReqs);
+          updateTenantStats(gData.tenantReqs);
+        }
+      }
+      else if(tabLabel.includes('Building') || tabLabel.includes('🏗')){
+        const r = await apiGET({action:'readOps'});
+        if(r){
+          gData.buildingAssigns = r.buildingAssigns || gData.buildingAssigns;
+          renderBuildingTable(gData.buildingAssigns);
+          updateBuildingStats(gData.buildingAssigns);
+          populateAssignDropdown(gData.buildingAssigns);
+        }
+      }
+      else if(tabLabel.includes('Engineering') || tabLabel.includes('🔧')){
+        const r = await apiGET({action:'readOps'});
+        if(r){
+          gData.engWork = r.engWork || gData.engWork;
+          renderEngTable(gData.engWork);
+          updateEngStats(gData.engWork);
+        }
+      }
+      else if(tabLabel.includes('CS') || tabLabel.includes('📊')){
+        const r = await apiGET({action:'readOps'});
+        if(r){
+          gData.csReport = r.csReport || gData.csReport;
+          renderCSTable(gData.csReport);
+          updateCSStats(gData.csReport);
+        }
+      }
+      else if(tabLabel.includes('Database') || tabLabel.includes('🗄')){
+        await loadAllDB();
+      }
+      else {
+        // ไม่รู้ tab → โหลดทั้งหมด
+        await loadAllLive();
+      }
+    } else {
+      // Embedded mode — reload from EXCEL_DATA
+      gData.tenantReqs      = [...EXCEL_DATA.tenantReqs];
+      gData.buildingAssigns = [...EXCEL_DATA.buildingAssigns];
+      gData.engWork         = [...EXCEL_DATA.engWork];
+      gData.csReport        = [...EXCEL_DATA.csReport];
+      renderTenantTable(gData.tenantReqs);
+      updateTenantStats(gData.tenantReqs);
+      renderBuildingTable(gData.buildingAssigns);
+      updateBuildingStats(gData.buildingAssigns);
+      renderEngTable(gData.engWork);
+      updateEngStats(gData.engWork);
+      renderCSTable(gData.csReport);
+      updateCSStats(gData.csReport);
+    }
+    document.getElementById('last-sync').textContent = 'อัพเดท: '+new Date().toLocaleTimeString('th-TH');
+    toast('✅ รีเฟรชข้อมูลเรียบร้อย');
+  } catch(e){
+    toast('⚠️ รีเฟรชไม่สำเร็จ: '+e.message);
+  } finally {
+    showSync(false);
+    if(btn){ btn.textContent='🔄'; btn.disabled=false; }
+  }
 }
 
 
