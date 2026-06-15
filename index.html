@@ -1640,7 +1640,12 @@ async function submitRequest(){
     }
     _submitting=false; if(sb){sb.disabled=false;sb.textContent='📤 ส่งคำขอ';}
   }
-  const reqNo='OT_AIR'+new Date().getFullYear()+(gData.tenantReqs.length+1);
+  // reqNo = OT_AIR + ปีเดือน + ลำดับในเดือน 3 หลัก (local fallback)
+  const _now=new Date();
+  const _ym=_now.getFullYear()+String(_now.getMonth()+1).padStart(2,'0');
+  const _prefix='OT_AIR'+_ym;
+  const _cnt=gData.tenantReqs.filter(r=>(r['OT-AIR Work Request No.']||'').startsWith(_prefix)).length;
+  const reqNo=_prefix+String(_cnt+1).padStart(3,'0');
   gData.tenantReqs.push({'OT-AIR Work Request No.':reqNo,'Date':nowStr(),'Type_OT-AIR':type,'Building':bld,'Space':unit,'Name':tenantInfo['Name']||'','Start time':start,'Finish time':end,'Name request':name,'Tel No.':tel,'Status':'Current','Remark':remark});
   gData.buildingAssigns.push(gData.tenantReqs[gData.tenantReqs.length-1]);
   gData.engWork.push(gData.tenantReqs[gData.tenantReqs.length-1]);
