@@ -1003,7 +1003,15 @@ tbody tr:hover td{background:var(--surface2)}
       <div class="fg"><label class="flabel">ช่าง</label><select class="fselect" id="as-staff"><option>A</option><option>B</option><option>C</option></select></div>
       <div class="fg"><label class="flabel">Shift</label><select class="fselect" id="as-shift"><option>Day</option><option>Afternoon</option><option>Night</option></select></div>
       <div class="fg"><label class="flabel">Rate Code</label><select class="fselect" id="as-code"></select></div>
-      <div class="fg full"><label class="flabel">Admin Decision</label>
+      <div class="fg"><label class="flabel">Billing Date Period (วันที่วางบิล)</label>
+        <select class="fselect" id="as-billing">
+          <option value="">— เลือก —</option>
+          <option value="5">วันที่ 5</option>
+          <option value="10">วันที่ 10</option>
+          <option value="15">วันที่ 15</option>
+          <option value="20">วันที่ 20</option>
+        </select></div>
+      <div class="fg"><label class="flabel">Admin Decision</label>
         <select class="fselect" id="as-ack"><option>Acknowledge</option><option>Reject</option></select></div>
     </div>
     <div class="frow">
@@ -1466,7 +1474,7 @@ function renderBuildingTable(){
   const wrap = document.getElementById('building-table-wrap');
   if(!data.length){wrap.innerHTML=emptyState('ไม่มีข้อมูล');return;}
   wrap.innerHTML=`<div class="table-wrap"><table>
-    <thead><tr><th>เลขที่</th><th>Tenant</th><th>Bld</th><th>Space</th><th>เวลา</th><th>Admin</th><th>ช่าง</th><th>Manager</th><th></th></tr></thead>
+    <thead><tr><th>เลขที่</th><th>Tenant</th><th>Bld</th><th>Space</th><th>เวลา</th><th>Admin</th><th>ช่าง</th><th>Billing</th><th></th></tr></thead>
     <tbody>${data.map((r,i)=>{
       const ack=r['Admin helpdaesk (Acknowledge/Reject)'];
       const mgr=r['Manager Consider(Approved/Waiting/Reject)'];
@@ -1480,6 +1488,7 @@ function renderBuildingTable(){
         <td style="font-size:11px;white-space:nowrap">${r['Start time']||'—'}–${r['Finish time']||'—'}</td>
         <td>${ack?`<span class="tag t-green">✓ ${ack}</span>`:`<span class="tag t-amber">⏳ รอ</span>`}</td>
         <td>${r['Staff Name']?`<span class="tag t-purple">${r['Staff Name']}</span>`:'—'}</td>
+      <td>${r['Billing Date Period']?`<span class="tag t-amber">วันที่ ${r['Billing Date Period']}</span>`:'—'}</td>
 
         <td style="white-space:nowrap">${actions}</td>
       </tr>`;
@@ -1620,7 +1629,7 @@ function doAssign(i){
   openMod('mod-assign');
 }
 async function submitAssign(){
-  const req=v('as-req'),staff=v('as-staff'),shift=v('as-shift'),code=v('as-code'),ack=v('as-ack');
+  const req=v('as-req'),staff=v('as-staff'),shift=v('as-shift'),code=v('as-code'),ack=v('as-ack'),billing=v('as-billing');
   if(!req||!staff){toast('⚠️ กรุณากรอกข้อมูลให้ครบ');return;}
   const idx=gData.buildingAssigns.findIndex(r=>r['OT-AIR Work Request No.']==='req');
   if(idx>=0){
@@ -1628,6 +1637,7 @@ async function submitAssign(){
     gData.buildingAssigns[idx]['Shift']=shift;
     gData.buildingAssigns[idx]['Code OT Air']=code;
     gData.buildingAssigns[idx]['Admin helpdaesk (Acknowledge/Reject)']=ack;
+    gData.buildingAssigns[idx]['Billing Date Period']=billing;
     gData.buildingAssigns[idx]['Manager Consider(Approved/Waiting/Reject)']='Waiting';
     const eIdx=gData.engWork.findIndex(r=>r['OT-AIR Work Request No.']==='req');
     if(eIdx>=0){gData.engWork[eIdx]['Staff Name']=staff;gData.engWork[eIdx]['Shift']=shift;gData.engWork[eIdx]['Code OT Air']=code;}
@@ -2246,8 +2256,13 @@ function getStatus(r){
 }
 
 function statusTag(s){
-  const m={approved:`<span class="tag t-green">✓ Approved</span>`,rejected:`<span class="tag t-red">✕ Rejected</span>`,acknowledged:`<span class="tag t-blue">✓ Acked</span>`,pending:`<span class="tag t-amber">⏳ Pending</span>`};
-  return m[s]||`<span class="tag t-gray">${s}</span>`;
+  const m={
+    approved:     '<span class="tag t-green">✓ Approved</span>',
+    rejected:     '<span class="tag t-red">✕ Rejected</span>',
+    acknowledged: '<span class="tag t-blue">👁 Acknowledged</span>',
+    pending:      '<span class="tag t-amber">⏳ Pending</span>',
+  };
+  return m[s]||'<span class="tag t-gray">'+s+'</span>';
 }
 
 function typeTag(t){
