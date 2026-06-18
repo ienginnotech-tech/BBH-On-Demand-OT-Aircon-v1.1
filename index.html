@@ -631,15 +631,6 @@ tbody tr:hover td{background:var(--surface2)}
             <div class="card-header"><div class="card-title"><div class="card-title-icon">📥</div>คำขอ OT ทั้งหมด</div></div>
             <div id="building-table-wrap"><div class="loading"><span class="spinner"></span>กำลังโหลด...</div></div>
           </div>
-          <!-- Manager Approve section in Building page -->
-          <div class="card" id="approve-card">
-            <div class="card-header">
-              <div class="card-title"><div class="card-title-icon">✅</div>Manager Approve</div>
-              <div style="font-size:11px;color:var(--text2)">อนุมัติ / ปฏิเสธ คำขอ OT Air</div>
-            </div>
-            <div id="manager-table-wrap"><div class="loading"><span class="spinner"></span>กำลังโหลด...</div></div>
-          </div>
-
           <div class="card">
             <div class="card-header"><div class="card-title"><div class="card-title-icon">💰</div>Rate Code Reference</div>
               <div style="display:flex;gap:6px">
@@ -1148,7 +1139,6 @@ const EXCEL_DATA = {"staff": ["A", "B", "C"], "types": ["ระบบปรั�
 const DEFAULT_PASSWORDS = {
   'tenant-BTE':'bte123','tenant-BTB':'btb123','tenant-UBCII':'ubcii123',
   'building-BTE':'bldBTE','building-BTB':'bldBTB','building-UBCII':'bldUBCII',
-  'manager-BTE':'mgrBTE','manager-BTB':'mgrBTB','manager-UBCII':'mgrUBCII',
   'eng-BTE':'engBTE','eng-BTB':'engBTB','eng-UBCII':'engUBCII',
   'cs':'cs@admin','admin':'admin999'
 };
@@ -1167,7 +1157,7 @@ const NAV_CONFIG = {
   tenant:   [{id:'tenant',   icon:'🏢', label:'OT Request',   badge:()=>gData.tenantReqs.filter(r=>getStatus(r)==='pending').length}],
   building: [{id:'building', icon:'🏗️', label:'Assign งาน',  badge:()=>gData.buildingAssigns.filter(r=>!r['Admin helpdaesk (Acknowledge/Reject)']).length},
              {id:'db',       icon:'🗄️', label:'Database',      badge:()=>0}],
-  manager:  [{id:'building', icon:'🏗️', label:'Approve งาน', badge:()=>gData.buildingAssigns.filter(r=>!r['Manager Consider(Approved/Waiting/Reject)']).length}],
+  manager:  [{id:'building', icon:'🏗️', label:'Assign งาน', badge:()=>0}],
   eng:      [{id:'eng',      icon:'🔧', label:'งาน OT',        badge:()=>gData.engWork.filter(r=>r['Open_OT-Air(Time)']&&!r['Close_OT-Air(Time)']).length}],
   cs:       [{id:'tenant',   icon:'🏢', label:'Tenant',        badge:()=>0},
              {id:'building', icon:'🏗️', label:'Building',      badge:()=>0},
@@ -1316,7 +1306,7 @@ function goPage(id, navEl){
 
   // Lazy load
   if(id==='db' && !dbData.staff.length) loadAllDB();
-  if(id==='building') setTimeout(()=>renderManagerTable(),100);
+  
   if(id==='users') renderUserManagement();
   if(id==='settings') renderSettings();
   closeSidebar();
@@ -1490,7 +1480,7 @@ function renderBuildingTable(){
         <td style="font-size:11px;white-space:nowrap">${r['Start time']||'—'}–${r['Finish time']||'—'}</td>
         <td>${ack?`<span class="tag t-green">✓ ${ack}</span>`:`<span class="tag t-amber">⏳ รอ</span>`}</td>
         <td>${r['Staff Name']?`<span class="tag t-purple">${r['Staff Name']}</span>`:'—'}</td>
-        <td>${mgr==='Approved'?`<span class="tag t-green">✓ OK</span>`:mgr?`<span class="tag t-amber">⏳</span>`:`<span class="tag t-gray">—</span>`}</td>
+
         <td style="white-space:nowrap">${actions}</td>
       </tr>`;
     }).join('')}</tbody>
@@ -1593,12 +1583,25 @@ function renderRateTable(data){
 // ============================================================
 async function doAck(i){
   const r=gData.buildingAssigns[i]; if(!r)return;
+  const no=r['OT-AIR Work Request No.'];
   r['Admin helpdaesk (Acknowledge/Reject)']='Acknowledge';
   r['Building Date recording']=nowStr();
-  if(USE_LIVE_API) await apiGET({action:'acknowledge',reqNo:r['OT-AIR Work Request No.'],decision:'Acknowledge'});
-  renderBuildingTable(); updateAllStats();
+  // ไม่มี Manager แล้ว — Auto-approve ทันที
+  r['Manager Consider(Approved/Waiting/Reject)']='Approved';
+  r['Manager Name']='Auto';
+  // Sync กลับ tenantReqs
+  const tIdx=gData.tenantReqs.findIndex(t=>t['OT-AIR Work Request No.']===''+no);
+  if(tIdx>=0){
+    gData.tenantReqs[tIdx]['Admin helpdaesk (Acknowledge/Reject)']='Acknowledge';
+    gData.tenantReqs[tIdx]['Manager Consider(Approved/Waiting/Reject)']='Approved';
+  }
+  if(USE_LIVE_API){
+    await apiGET({action:'acknowledge',reqNo:no,decision:'Acknowledge'});
+    await apiGET({action:'managerApprove',data:encodeURIComponent(JSON.stringify({reqNo:no,decision:'Approved',managerName:'Auto'}))});
+  }
+  renderBuildingTable(); renderTenantTable(); updateAllStats();
   setTimeout(()=>{doAssign(i);},300);
-  toast('✅ Acknowledge — กรุณามอบหมายช่าง');
+  toast('✅ Acknowledge & Approved — กรุณามอบหมายช่าง');
 }
 async function doReject(i){
   const r=gData.buildingAssigns[i]; if(!r)return;
