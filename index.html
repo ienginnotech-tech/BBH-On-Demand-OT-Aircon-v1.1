@@ -513,7 +513,6 @@ tbody tr:hover td{background:var(--surface2)}
           <option value="">— เลือก Role —</option>
           <option value="tenant">Tenant</option>
           <option value="building">Building Admin</option>
-          <option value="manager">Manager / Approve</option>
           <option value="engineering">Engineering</option>
         </select>
       </div>
@@ -1158,7 +1157,6 @@ const NAV_CONFIG = {
   tenant:   [{id:'tenant',   icon:'🏢', label:'OT Request',   badge:()=>gData.tenantReqs.filter(r=>getStatus(r)==='pending').length}],
   building: [{id:'building', icon:'🏗️', label:'Assign งาน',  badge:()=>gData.buildingAssigns.filter(r=>!r['Admin helpdaesk (Acknowledge/Reject)']).length},
              {id:'db',       icon:'🗄️', label:'Database',      badge:()=>0}],
-  manager:  [{id:'building', icon:'🏗️', label:'Assign งาน', badge:()=>0}],
   eng:      [{id:'eng',      icon:'🔧', label:'งาน OT',        badge:()=>gData.engWork.filter(r=>r['Open_OT-Air(Time)']&&!r['Close_OT-Air(Time)']).length}],
   cs:       [{id:'tenant',   icon:'🏢', label:'Tenant',        badge:()=>0},
              {id:'building', icon:'🏗️', label:'Building',      badge:()=>0},
@@ -1179,7 +1177,7 @@ let allRateCodes = [];
 let gData = {tenantReqs:[],buildingAssigns:[],engWork:[],csReport:[]};
 let dbData = {staff:[],types:[],levels:[],rates:[],buildings:[],tenants:[]};
 let registeredUsers = [];
-let APPS_SCRIPT_URL = localStorage.getItem('bbh_api_url')||'';
+let APPS_SCRIPT_URL = localStorage.getItem('bbh_api_url')||'https://script.google.com/macros/s/AKfycbxrR5B4UjyMyXQUR0wAt6h63oGPZZury23iUfj_DmOD9oILByVDXH5qvp0wZ6rsb-zA/exec';
 let USE_LIVE_API = APPS_SCRIPT_URL !== '';
 
 // ---- REGISTER store (localStorage) ----
@@ -1300,7 +1298,7 @@ function goPage(id, navEl){
   if(navEl) navEl.classList.add('active');
 
   // Set topbar title
-  const titles={tenant:'🏢 OT Request',building:'🏗️ Assign งาน',manager:'✅ Manager Approve',
+  const titles={tenant:'🏢 OT Request',building:'🏗️ Assign งาน',
     eng:'🔧 Engineering OT',cs:'📊 CS Report',db:'🗄️ Database',users:'👥 Users',settings:'⚙️ Settings'};
   document.getElementById('topbar-title').textContent = titles[id]||'BBH OT Aircon';
   document.getElementById('topbar-sub').textContent = currentBuilding==='ALL'?'All Buildings':'Building: '+currentBuilding;
@@ -2194,7 +2192,7 @@ function savePasswords(){
 // API
 // ============================================================
 function loadApiUrl(){
-  const saved=localStorage.getItem('bbh_api_url')||'';
+  const saved=localStorage.getItem('bbh_api_url')||APPS_SCRIPT_URL;
   APPS_SCRIPT_URL=saved; USE_LIVE_API=saved!=='';
   const el=document.getElementById('api-url-input');
   if(el&&saved)el.value=saved;
@@ -2346,7 +2344,11 @@ function v(id){const el=document.getElementById(id);return el?(el.value||'').tri
 function se(id,val){const el=document.getElementById(id);if(el)el.textContent=val;}
 function num(s){return s?Number(String(s).replace(/,/g,'')).toLocaleString():'0';}
 function fmtDate(s){if(!s)return'—';return String(s).split(' ')[0]||s;}
-function nowStr(){return new Date().toLocaleString('th-TH');}
+function nowStr(){
+  const d=new Date();
+  const pad=n=>String(n).padStart(2,'0');
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
 function timeToMin(t){if(!t)return 0;const p=String(t).split(':');return parseInt(p[0]||0)*60+parseInt(p[1]||0);}
 
 function getStatus(r){
