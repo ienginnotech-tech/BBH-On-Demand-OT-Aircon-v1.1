@@ -615,7 +615,7 @@ tbody tr:hover td{background:rgba(0,210,180,.04)}
         <option value="tenant-BTB">Tenant — BTB</option>
         <option value="tenant-UBCII">Tenant — UBCII</option>
       </optgroup>
-      <optgroup label="🏗️ Building">
+      <optgroup label="🏗️ CLS">
         <option value="building-BTE">Building — BTE</option>
         <option value="building-BTB">Building — BTB</option>
         <option value="building-UBCII">Building — UBCII</option>
@@ -625,8 +625,8 @@ tbody tr:hover td{background:rgba(0,210,180,.04)}
         <option value="eng-BTB">Engineering — BTB</option>
         <option value="eng-UBCII">Engineering — UBCII</option>
       </optgroup>
-      <optgroup label="📊 CS / Admin">
-        <option value="cs">CS Admin</option>
+      <optgroup label="📊 CLS / Admin">
+        <option value="cs">CLS Admin</option>
         <option value="admin">Admin System</option>
       </optgroup>
     </select>
@@ -791,12 +791,12 @@ tbody tr:hover td{background:rgba(0,210,180,.04)}
           </div>
         </div>
 
-        <!-- PAGE: BUILDING -->
+        <!-- PAGE: CLS -->
         <div class="page" id="page-building">
           <div class="sh">
             <div>
-              <div class="sh-title">🏗️ จัดสรร OT งาน</div>
-              <div class="sh-sub">Acknowledge / มอบหมายช่าง / อนุมัติอัตโนมัติ</div>
+              <div class="sh-title">🏗️ CLS Assign งาน</div>
+              <div class="sh-sub">CLS Assign / มอบหมายช่าง / อนุมัติอัตโนมัติ</div>
             </div>
             <button class="btn btn-p" onclick="openMod('mod-assign')">＋ มอบหมายงาน</button>
           </div>
@@ -1067,12 +1067,12 @@ tbody tr:hover td{background:rgba(0,210,180,.04)}
                 <!-- PASSWORD -->
                 <div class="settings-panel" id="s-password">
                   <div style="font-size:13px;font-weight:700;margin-bottom:4px">🔑 ตั้ง Password สำหรับแต่ละอาคาร / Role</div>
-                  <div style="font-size:11px;color:var(--text2);margin-bottom:16px">CS Admin เท่านั้นที่เปลี่ยน Password ได้</div>
+                  <div style="font-size:11px;color:var(--text2);margin-bottom:16px">CLS Admin เท่านั้นที่เปลี่ยน Password ได้</div>
                   <div id="password-list"></div>
                   <div class="frow"><button class="btn btn-p btn-sm" onclick="savePasswords()">💾 บันทึก Password ทั้งหมด</button></div>
                 </div>
 
-                <!-- BUILDING CONFIG -->
+                <!-- CLS CONFIG -->
                 <div class="settings-panel" id="s-building">
                   <div style="font-size:13px;font-weight:700;margin-bottom:12px">🏢 Building Configuration</div>
                   <div id="bld-config-list"></div>
@@ -1083,11 +1083,11 @@ tbody tr:hover td{background:rgba(0,210,180,.04)}
         </div>
 
 
-        <!-- PAGE: SENT TO YADI -->
+        <!-- PAGE: SENT TO YARDI -->
         <div class="page" id="page-yadi">
           <div class="sh">
             <div>
-              <div class="sh-title">📤 Sent to YADI</div>
+              <div class="sh-title">📤 Sent to YARDI</div>
               <div class="sh-sub">สร้างตารางวางบิลอัตโนมัติ — แยกตาม DOCUMENTSEQUENCENUMBER</div>
             </div>
           </div>
@@ -1135,17 +1135,17 @@ tbody tr:hover td{background:rgba(0,210,180,.04)}
           <!-- Export buttons -->
           <div id="yadi-export-bar" style="display:none;margin-bottom:12px;display:none">
             <div style="display:flex;gap:8px;flex-wrap:wrap">
-              <button class="btn btn-p" onclick="exportYADI_CSV()">⬇ Export CSV (YADI Format)</button>
+              <button class="btn btn-p" onclick="exportYADI_CSV()">⬇ Export CSV (YARDI Format)</button>
               <button class="btn btn-o btn-sm" onclick="exportYADI_Full()">⬇ Export Full Table</button>
               <button class="btn btn-o btn-sm" onclick="window.print()">🖨 Print</button>
             </div>
           </div>
 
-          <!-- YADI Table -->
+          <!-- YARDI Table -->
           <div class="card" id="yadi-result-card" style="display:none">
             <div class="card-header">
               <div class="card-title"><div class="card-title-icon">📋</div>
-                ตาราง Sent to YADI — <span id="yadi-period-label"></span>
+                ตาราง Sent to YARDI — <span id="yadi-period-label"></span>
               </div>
               <div style="display:flex;gap:6px">
                 <button class="btn btn-p btn-sm" onclick="exportYADI_CSV()">⬇ CSV</button>
@@ -1359,23 +1359,23 @@ const NAV_CONFIG = {
   // Tenant: เห็นแค่ OT Request
   tenant:   [{id:'tenant',   icon:'🏢', label:'OT Request',   badge:()=>gData.tenantReqs.filter(r=>getStatus(r)==='pending').length}],
   // Building: เห็น Assign งาน + Database
-  building: [{id:'building', icon:'🏗️', label:'Assign งาน',  badge:()=>gData.buildingAssigns.filter(r=>!r['Admin helpdesk (Acknowledge/Reject)']).length},
+  building: [{id:'building', icon:'🏗️', label:'CLS Assign',  badge:()=>gData.buildingAssigns.filter(r=>!r['Admin helpdesk (Acknowledge/Reject)']).length},
              {id:'db',       icon:'🗄️', label:'Database',      badge:()=>0}],
   // Engineering: เห็นแค่งาน OT
   eng:      [{id:'eng',      icon:'🔧', label:'งาน OT',        badge:()=>gData.engWork.filter(r=>r['Open_OT-Air(Time)']&&!r['Close_OT-Air(Time)']).length}],
   // CS: เห็นทุกหน้าของ operation ยกเว้น Users/Settings
   cs:       [{id:'tenant',   icon:'🏢', label:'Tenant',        badge:()=>0},
-             {id:'building', icon:'🏗️', label:'Building',      badge:()=>0},
+             {id:'building', icon:'🏗️', label:'CLS',      badge:()=>0},
              {id:'eng',      icon:'🔧', label:'Engineering',   badge:()=>0},
-             {id:'cs',       icon:'📊', label:'CS Report',     badge:()=>0},
-             {id:'yadi',     icon:'📤', label:'Sent to YADI',  badge:()=>0},
+             {id:'cs',       icon:'📊', label:'CLS Report',     badge:()=>0},
+             {id:'yadi',     icon:'📤', label:'Sent to YARDI',  badge:()=>0},
              {id:'db',       icon:'🗄️', label:'Database',      badge:()=>0}],
   // Admin (Super Admin): เห็นทุกหน้ารวม Users + Settings
   admin:    [{id:'tenant',   icon:'🏢', label:'Tenant',        badge:()=>0},
-             {id:'building', icon:'🏗️', label:'Building',      badge:()=>0},
+             {id:'building', icon:'🏗️', label:'CLS',      badge:()=>0},
              {id:'eng',      icon:'🔧', label:'Engineering',   badge:()=>0},
-             {id:'cs',       icon:'📊', label:'CS Report',     badge:()=>0},
-             {id:'yadi',     icon:'📤', label:'Sent to YADI',  badge:()=>0},
+             {id:'cs',       icon:'📊', label:'CLS Report',     badge:()=>0},
+             {id:'yadi',     icon:'📤', label:'Sent to YARDI',  badge:()=>0},
              {id:'db',       icon:'🗄️', label:'Database',      badge:()=>0},
              {id:'users',    icon:'👥', label:'Users',         badge:()=>pendingUsers().length},
              {id:'settings', icon:'⚙️', label:'Settings',      badge:()=>0}],
@@ -1474,7 +1474,7 @@ function doLogin(){
   const parts = mod.split('-');
   currentRole = parts[0];
   currentBuilding = parts[1]||'ALL';
-  currentUser = regUser ? regUser.name : (currentRole==='cs'?'CS Admin':'User');
+  currentUser = regUser ? regUser.name : (currentRole==='cs'?'CLS Admin':'User');
 
   startApp();
 }
@@ -1524,8 +1524,8 @@ function startApp(){
   document.getElementById('app').style.display='block';
 
   // Set sidebar info
-  const roleLabel={'tenant':'🏢 Tenant','building':'🏗️ Building Admin','manager':'✅ Manager',
-                   'eng':'🔧 Engineering','cs':'📊 CS Admin','admin':'👑 Super Admin'};
+  const roleLabel={'tenant':'🏢 Tenant','building':'🏗️ CLS','manager':'✅ Manager',
+                   'eng':'🔧 Engineering','cs':'📊 CLS Admin','admin':'👑 Super Admin'};
   document.getElementById('sb-building').textContent = currentBuilding==='ALL'?'All Buildings':'Building: '+currentBuilding;
   document.getElementById('sb-username').textContent = currentUser;
   document.getElementById('sb-role').textContent = roleLabel[currentRole]||currentRole;
@@ -1561,8 +1561,8 @@ function goPage(id, navEl){
   if(navEl) navEl.classList.add('active');
 
   // Set topbar title
-  const titles={tenant:'🏢 OT Request',building:'🏗️ Assign งาน',
-    eng:'🔧 Engineering OT',cs:'📊 CS Report',db:'🗄️ Database',users:'👥 Users',settings:'⚙️ Settings'};
+  const titles={tenant:'🏢 OT Request',building:'🏗️ CLS Assign',
+    eng:'🔧 Engineering OT',cs:'📊 CLS Report',db:'🗄️ Database',users:'👥 Users',settings:'⚙️ Settings'};
   document.getElementById('topbar-title').textContent = titles[id]||'PSD eNGINNo';
   document.getElementById('topbar-sub').textContent = currentBuilding==='ALL'?'All Buildings':'Building: '+currentBuilding;
 
@@ -1584,7 +1584,7 @@ async function initApp(){
   showSync(false);
   setSyncStatus();
   renderAllModules();
-  // โหลด Engineering + CS Report เป็น background ไม่บล็อกหน้าจอ
+  // โหลด Engineering + CLS Report เป็น background ไม่บล็อกหน้าจอ
   if(USE_LIVE_API){ loadEngCSBackground().catch(e=>console.warn('loadEngCSBackground failed:',e.message)); }
 }
 
@@ -1630,7 +1630,7 @@ async function loadEngCSBackground(){
   const wrapEng=document.getElementById('eng-table-wrap');
   const wrapCS=document.getElementById('cs-table-wrap');
   if(wrapEng) wrapEng.innerHTML='<div class="loading"><span class="spinner"></span>กำลังโหลดข้อมูล Engineering... <button class="btn btn-o btn-sm" style="margin-left:8px" onclick="loadEngCSBackground()">↻ ลองใหม่</button></div>';
-  if(wrapCS) wrapCS.innerHTML='<div class="loading"><span class="spinner"></span>กำลังโหลดข้อมูล CS Report... <button class="btn btn-o btn-sm" style="margin-left:8px" onclick="loadEngCSBackground()">↻ ลองใหม่</button></div>';
+  if(wrapCS) wrapCS.innerHTML='<div class="loading"><span class="spinner"></span>กำลังโหลดข้อมูล CLS Report... <button class="btn btn-o btn-sm" style="margin-left:8px" onclick="loadEngCSBackground()">↻ ลองใหม่</button></div>';
   try{
     const timeoutMs=15000;
     const withTimeout=p=>Promise.race([p,new Promise(res=>setTimeout(()=>res(null),timeoutMs))]);
@@ -1950,7 +1950,7 @@ function renderRateTable(data){
 }
 
 // ============================================================
-// ACTIONS: BUILDING
+// ACTIONS: CLS
 // ============================================================
 async function doAck(i){
   const r=gData.buildingAssigns[i]; if(!r)return;
@@ -2867,14 +2867,14 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('login-pass').addEventListener('keypress',e=>{if(e.key==='Enter')doLogin();});
   loadApiUrl();
   setSyncStatus();
-  // ตั้งค่า default เดือนปัจจุบันใน YADI
+  // ตั้งค่า default เดือนปัจจุบันใน YARDI
   (function(){
     var n=new Date();
     var ym=n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0');
     var el=document.getElementById('yadi-month');
     if(el) el.value=ym;
   })();
-  // ตั้งค่า default เดือนปัจจุบันใน YADI
+  // ตั้งค่า default เดือนปัจจุบันใน YARDI
   const now=new Date();
   const ym=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
   const yadiMonth=document.getElementById('yadi-month');
@@ -2883,7 +2883,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 
 
 // ============================================================
-// SENT TO YADI
+// SENT TO YARDI
 // ============================================================
 var yadiData = [];
 
@@ -2898,11 +2898,19 @@ function generateYADI() {
 
   var csData = (gData.csReport && gData.csReport.length) ? gData.csReport : EXCEL_DATA.csReport;
   var bldData = (gData.buildingAssigns && gData.buildingAssigns.length) ? gData.buildingAssigns : EXCEL_DATA.buildingAssigns;
+  var tenantData = (gData.tenantReqs && gData.tenantReqs.length) ? gData.tenantReqs : EXCEL_DATA.tenantReqs;
 
   // BillingDay map
   var billingMap = {};
   bldData.forEach(function(r) {
     billingMap[r['OT-AIR Work Request No.']] = r['Billing Date Period'] || '5';
+  });
+
+  // Tenant Date map (วันที่ Tenant แจ้งขอ OT จาก Tenant_OT request column Date)
+  var tenantDateMap = {};
+  tenantData.forEach(function(r) {
+    var reqNo = r['OT-AIR Work Request No.'];
+    if (reqNo && r['Date']) tenantDateMap[reqNo] = r['Date'];
   });
 
   // แปลงวันที่ dd/MM/yyyy หรือ ISO
@@ -2967,6 +2975,14 @@ function generateYADI() {
 
   var MONTHS = ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
+  // Property code map ตาม building
+  function mapProperty(bld) {
+    if (bld === 'BTE') return 'btebrro1';
+    if (bld === 'BTB') return 'btbbrro2';
+    if (bld === 'UBCII') return 'ubcii';
+    return bld;
+  }
+
   var tranNum = 1;
   var rows = filtered.map(function(r) {
     var tcode   = r['Code'] || '';
@@ -2982,22 +2998,24 @@ function generateYADI() {
     var dd      = dObj ? dObj.getDate() : '';
     var mm      = dObj ? dObj.getMonth() + 1 : 0;
     var bld     = r['Building'] || '';
+    var propCode = mapProperty(bld);          // #2 property code ใหม่
     var space   = String(r['Space'] || '').substring(0,12);
     var openStr = openT.substring(0,5).replace(':','.');
     var closeStr= closeT.substring(0,5).replace(':','.');
-    var notes   = bld+' - '+space+' - '+dd+' '+(MONTHS[mm]||'')+' - '+hrs+' hour'+(hrs>1?'s':'')+' ('+openStr+'-'+closeStr+')';
+    // #4 NOTES ใช้ propCode แทน bld
+    var notes   = propCode+' - '+space+' - '+dd+' '+(MONTHS[mm]||'')+' - '+hrs+' hour'+(hrs>1?'s':'')+' ('+openStr+'-'+closeStr+')';
     var n = tranNum++;
     return {
       TRANNUM: n,
-      PROPERTY: bld,
+      PROPERTY: propCode,                     // #2 ใช้ property code แทน building name
       PERSON: tcode,
       OFFSET: 'OTLOVE',
       AMONTH: amount.toFixed(2),
-      DATE: dates.postMonth,
+      DATE: fmtDate(parseDate(tenantDateMap[r['OT-AIR Work Request No.']] || startD)), // #3 DATE = วันที่ Tenant แจ้งขอ OT
       POSTMONTH: dates.postMonth,
       FROMDATE: dates.fromDate,
       TODATE: dates.toDate,
-      NOTES: notes,
+      NOTES: notes,                           // #4 ใช้ property code ใน notes
       DOCUMENTSEQUENCENUMBER: docSeqMap[tcode],
       Unit: r['Space'] || '',
       Tenant: r['Property'] || r['Name'] || '',
@@ -3007,6 +3025,7 @@ function generateYADI() {
       Area: r['Area'] || r['Cal_Rent Area(SQ.M)'] || '',
       _name: r['Name'] || '',
       _total: amount,
+      _bld: bld,
     };
   });
 
@@ -3030,7 +3049,7 @@ function generateYADI() {
   renderYADICompanies(rows);
   document.getElementById('yadi-result-card').style.display = 'block';
   document.getElementById('yadi-export-bar').style.display = 'flex';
-  toast('✅ YADI ' + rows.length + ' รายการ / ' + companies + ' บริษัท');
+  toast('✅ YARDI ' + rows.length + ' รายการ / ' + companies + ' บริษัท');
 }
 
 function renderYADITable(rows) {
@@ -3108,16 +3127,20 @@ function exportYADI_CSV() {
   if (!yadiData.length) { toast('กรุณาสร้างตารางก่อน'); return; }
   var headers = ['TRANNUM','PROPERTY','PERSON','OFFSET','AMONTH',
                  'DATE','POSTMONTH','FROMDATE','TODATE','NOTES','DOCUMENTSEQUENCENUMBER'];
-  var rows2 = yadiData.map(function(r) {
+  var dataRows = yadiData.map(function(r) {
     return headers.map(function(h){ return '"'+(r[h]||'')+'"'; }).join(',');
   });
-  var csv = [headers.join(',')].concat(rows2).join('\n');
+  // Row 1: FinCharges ใน A1 เท่านั้น ที่เหลือว่าง
+  var finRow = 'FinCharges' + ','.repeat(headers.length - 1);
+  // Row 2: header, Row 3+: data
+  var csv = [finRow, headers.join(',')].concat(dataRows).join('\n');
   var a = document.createElement('a');
-  a.href = 'data:text/csv;charset=utf-8,\uFEFF' + encodeURIComponent(csv);
+  // ไม่ใส่ BOM เพื่อให้ Excel อ่าน FinCharges ใน A1 ได้ถูกต้อง
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
   var mth = document.getElementById('yadi-month').value.replace('-','');
-  a.download = 'Sent_to_YADI_'+mth+'.csv';
+  a.download = 'Sent_to_YARDI_'+mth+'.csv';
   a.click();
-  toast('⬇ Export CSV เรียบร้อย');
+  toast('⬇ Export CSV (YARDI Format) เรียบร้อย');
 }
 
 function exportYADI_Full() {
@@ -3132,7 +3155,7 @@ function exportYADI_Full() {
   var a = document.createElement('a');
   a.href = 'data:text/csv;charset=utf-8,\uFEFF' + encodeURIComponent(csv);
   var mth = document.getElementById('yadi-month').value.replace('-','');
-  a.download = 'Sent_to_YADI_Full_'+mth+'.csv';
+  a.download = 'Sent_to_YARDI_Full_'+mth+'.csv';
   a.click();
   toast('⬇ Export Full CSV เรียบร้อย');
 }
