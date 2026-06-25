@@ -3266,13 +3266,13 @@ function nowStr(){
 function timeToMin(t){if(!t)return 0;const p=String(t).split(':');return parseInt(p[0]||0)*60+parseInt(p[1]||0);}
 
 function getStatus(r){
-  const mgr=r['Manager Consider(Approved/Waiting/Reject)'];
-  const ack=r['Admin helpdesk (Acknowledge/Reject)'];
-  if(ack==='Reject')return'rejected';   // CLS Reject = ยกเลิก/แจ้งซ้ำ
-  if(mgr==='Approved')return'approved';
-  if(mgr==='Reject')return'rejected';
-  if(ack==='Acknowledge'||ack==='Acknowledde')return'acknowledged';
-  if(ack)return'acknowledged';
+  const reqNo = r['OT-AIR Work Request No.']||'';
+  // ดึง ack จาก buildingAssigns เพราะ tenantReqs ไม่มี field นี้
+  const bRow = (gData.buildingAssigns||[]).find(b=>b['OT-AIR Work Request No.']=== reqNo);
+  const ack = bRow ? (bRow['Admin helpdesk (Acknowledge/Reject)']||'').trim() : (r['Admin helpdesk (Acknowledge/Reject)']||'').trim();
+  const ackLow = ack.toLowerCase();
+  if(ackLow==='reject') return'rejected';
+  if(ackLow==='acknowledge') return'acknowledged';
   return'pending';
 }
 
