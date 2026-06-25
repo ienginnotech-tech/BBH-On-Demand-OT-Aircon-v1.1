@@ -1539,9 +1539,9 @@ const NAV_CONFIG = {
              {id:'yadi',     icon:'📤', label:'Sent to YARDI',  badge:()=>0},
              {id:'db',       icon:'🗄️', label:'Database',      badge:()=>0}],
   // Admin (Super Admin): เห็นทุกหน้ารวม Users + Settings
-  admin:    [{id:'tenant',   icon:'🏢', label:'Tenant',        badge:()=>0},
-             {id:'building', icon:'🏗️', label:'CLS',      badge:()=>0},
-             {id:'eng',      icon:'🔧', label:'Engineering',   badge:()=>0},
+  admin:    [{id:'tenant',   icon:'🏢', label:'Tenant',        badge:()=>_badge.tenantPending()},
+             {id:'building', icon:'🏗️', label:'CLS',           badge:()=>_badge.clsPending()},
+             {id:'eng',      icon:'🔧', label:'Engineering',    badge:()=>_badge.engPending()},
              {id:'cs',       icon:'📊', label:'CLS Report',     badge:()=>0},
              {id:'yadi',     icon:'📤', label:'Sent to YARDI',  badge:()=>0},
              {id:'db',       icon:'🗄️', label:'Database',      badge:()=>0},
