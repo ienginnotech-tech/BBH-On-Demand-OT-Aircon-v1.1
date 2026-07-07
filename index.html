@@ -1188,7 +1188,9 @@ tbody tr:hover td{background:rgba(0,210,180,.04)}
                   <label class="flabel">Building</label>
                   <select class="fselect" id="yadi-bld">
                     <option value="">ทุก Building</option>
-                    <option>BTE</option><option>BTB</option><option>UBCII</option>
+                    <option value="BTE">BTE</option>
+                    <option value="BTB">BTB</option>
+                    <option value="UBCII">UBCII</option>
                   </select>
                 </div>
                 <div class="fg">
@@ -1819,6 +1821,7 @@ function goPage(id, navEl){
 
   // Lazy load
   if(id==='db' && !dbData.staff.length) loadAllDB();
+  if(id==='yadi') initYadiBld();
   if(id==='users') renderUserManagement();
   if(id==='settings') renderSettings();
   closeSidebar();
@@ -3422,9 +3425,32 @@ document.addEventListener('DOMContentLoaded',()=>{
 // ============================================================
 var yadiData = [];
 
+function initYadiBld(){
+  // Set building dropdown ตาม currentBuilding ของ user ที่ login
+  const sel = document.getElementById('yadi-bld');
+  if(!sel) return;
+  if(currentBuilding && currentBuilding !== 'ALL'){
+    // lock ให้เห็นเฉพาะอาคารตัวเอง
+    sel.value = currentBuilding;
+    sel.disabled = true;
+    sel.style.opacity = '0.7';
+    sel.style.cursor = 'not-allowed';
+  } else {
+    // admin/ALL — เปิดให้เลือกได้
+    sel.value = '';
+    sel.disabled = false;
+    sel.style.opacity = '';
+    sel.style.cursor = '';
+  }
+}
+
 function generateYADI() {
   var monthVal = document.getElementById('yadi-month').value;
   var bldFilter = v('yadi-bld');
+  // บังคับ filter ตาม currentBuilding เสมอ ยกเว้น ALL/admin
+  if(currentBuilding && currentBuilding !== 'ALL'){
+    bldFilter = currentBuilding;
+  }
   var billingDay = v('yadi-billing-day');
   if (!monthVal) { toast('กรุณาเลือกเดือน'); return; }
   var parts = monthVal.split('-');
