@@ -1397,7 +1397,10 @@ tbody tr:hover td{background:rgba(0,210,180,.04)}
           <option value="Normal">Normal</option>
           <option value="Special">Special</option>
         </select></div>
-      <div class="fg"><label class="flabel">Rate Code</label><select class="fselect" id="as-code"></select></div>
+      <div class="fg full"><label class="flabel">Rate Code</label>
+        <select class="fselect" id="as-code" size="4" style="height:auto;min-height:80px;font-size:12px" onchange="showRateDesc(this.value)"></select>
+        <div id="as-code-desc" style="margin-top:4px;font-size:11px;color:var(--accent);background:var(--surface2);padding:6px 10px;border-radius:6px;min-height:20px;display:none"></div>
+      </div>
       <div class="fg"><label class="flabel">Billing Date Period (วันที่วางบิล)</label>
         <select class="fselect" id="as-billing">
           <option value="">— เลือก —</option>
@@ -2395,13 +2398,24 @@ function doAssign(i){
   currentAssignBuilding = bld;
   const levelSel = document.getElementById('as-level');
   if(levelSel) levelSel.value = '';
+  // filter ตาม building ของคำขอ และ currentBuilding ของ user ที่ login
+  const effectiveBld = bld || (currentBuilding!=='ALL' ? currentBuilding : '');
   const rates = (allRateCodes.length ? allRateCodes : EXCEL_DATA.rates).filter(rc =>
-    !bld || rc['Building name'] === bld
+    !effectiveBld || rc['Building name'] === effectiveBld
   );
   const codeSel = document.getElementById('as-code');
   if(codeSel){
     codeSel.innerHTML='<option value="">— เลือก Rate Code —</option>'+
-      rates.map(rc=>`<option value="${rc['Code OT Air']}">${rc['Code OT Air']} — ${(rc['Description']||'').substring(0,40)}</option>`).join('');
+      rates.map(rc=>{
+        const code = rc['Code OT Air']||'';
+        const desc = rc['Description']||'';
+        const minCharge = rc['Minimum charge(THB)']||'';
+        const hrRate = rc['Addtional charge(THB/Hour)']||'';
+        const aRate = rc['Charge per Area(THB/M2)']||'';
+        const rateInfo = hrRate>0 ? `฿${hrRate}/ชม.` : aRate>0 ? `฿${aRate}/m²` : '';
+        const minInfo = minCharge>0 ? ` | ขั้นต่ำ ฿${minCharge}` : '';
+        return `<option value="${code}">${code} | ${desc} ${rateInfo}${minInfo}</option>`;
+      }).join('');
     // Pre-select ถ้ามีค่าเดิมอยู่
     if(r['Code OT Air']) codeSel.value = r['Code OT Air'];
   }
@@ -2422,6 +2436,22 @@ function doAssign(i){
 }
 
 let currentAssignBuilding = '';
+function showRateDesc(code){
+  const desc = document.getElementById('as-code-desc');
+  if(!desc) return;
+  const rc = (allRateCodes.length?allRateCodes:EXCEL_DATA.rates).find(r=>r['Code OT Air']===code);
+  if(!rc){ desc.style.display='none'; return; }
+  desc.style.display='block';
+  desc.innerHTML = `<strong style="color:var(--accent)">${rc['Code OT Air']}</strong> &nbsp;|&nbsp;
+    ${rc['Description']||''}<br>
+    <span style="color:var(--text2)">
+      ขั้นต่ำ: <strong>฿${rc['Minimum charge(THB)']||0}</strong> &nbsp;·&nbsp;
+      ต่อชม.: <strong>฿${rc['Addtional charge(THB/Hour)']||0}</strong> &nbsp;·&nbsp;
+      ต่อ m²: <strong>฿${rc['Charge per Area(THB/M2)']||0}</strong> &nbsp;·&nbsp;
+      ต่อเดือน: <strong>฿${rc['Addtional charge(THB/Month)']||0}</strong>
+    </span>`;
+}
+
 function filterAssignRateCodes(){
   const level = document.getElementById('as-level').value;
   const codeSel = document.getElementById('as-code');
@@ -2431,7 +2461,16 @@ function filterAssignRateCodes(){
     (!level || rc['Tenant_Level Charge'] === level)
   );
   codeSel.innerHTML='<option value="">— เลือก Rate Code —</option>'+
-    rates.map(rc=>`<option value="${rc['Code OT Air']}">${rc['Code OT Air']} — ${(rc['Description']||'').substring(0,40)}</option>`).join('');
+    rates.map(rc=>{
+      const code = rc['Code OT Air']||'';
+      const desc = rc['Description']||'';
+      const hrRate = rc['Addtional charge(THB/Hour)']||'';
+      const aRate = rc['Charge per Area(THB/M2)']||'';
+      const minCharge = rc['Minimum charge(THB)']||'';
+      const rateInfo = hrRate>0 ? `฿${hrRate}/ชม.` : aRate>0 ? `฿${aRate}/m²` : '';
+      const minInfo = minCharge>0 ? ` | ขั้นต่ำ ฿${minCharge}` : '';
+      return `<option value="${code}">${code} | ${desc} ${rateInfo}${minInfo}</option>`;
+    }).join('');
 }
 async function submitAssign(){
   const reqEl=document.getElementById('as-req');
