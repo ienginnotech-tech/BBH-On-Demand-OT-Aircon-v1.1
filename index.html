@@ -173,7 +173,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 #screen-login,#screen-register{
   min-height:100vh;display:flex;flex-direction:column;
   align-items:center;justify-content:center;
-  background:#0d0d0f;padding:20px;position:relative;overflow:hidden;
+  background:var(--bg,#0d0d0f);padding:20px;position:relative;overflow:hidden;
 }
 /* subtle dot grid */
 #screen-login::before,#screen-register::before{
@@ -191,8 +191,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .auth-hero-eyebrow span{color:var(--text2)}
 .auth-hero h1{
   font-size:36px;font-weight:900;line-height:1.1;
-  color:#ffffff;letter-spacing:-1px;
-  font-family:'Segoe UI','Arial Black',sans-serif;
+  color:var(--text);letter-spacing:-1px;
+  font-family:var(--font,'Segoe UI',sans-serif);
 }
 .auth-hero h1 em{
   font-style:normal;
@@ -201,13 +201,13 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 }
 .auth-hero-sub{
   font-size:12px;color:var(--text2);margin-top:10px;letter-spacing:.5px;
-  font-family:'Segoe UI',sans-serif;
+  font-family:var(--font,'Segoe UI',sans-serif);
 }
 /* card */
 .auth-box{
   width:100%;max-width:440px;z-index:1;
-  background:#1a1a20;
-  border:1px solid rgba(255,255,255,.06);
+  background:var(--surface,#1a1a20);
+  border:1px solid var(--border,rgba(255,255,255,.06));
   border-radius:14px;padding:32px 36px;
   box-shadow:0 20px 60px rgba(0,0,0,.6);
   position:relative;overflow:hidden;
@@ -218,23 +218,23 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .auth-sys-tag{display:none}
 .auth-label{
   font-size:10px;font-weight:700;color:var(--text2);margin-bottom:6px;display:block;
-  letter-spacing:1.5px;text-transform:uppercase;font-family:'Segoe UI',sans-serif;
+  letter-spacing:1.5px;text-transform:uppercase;font-family:var(--font,'Segoe UI',sans-serif);
 }
 .auth-label::before{display:none}
 .auth-input,.auth-select{
   width:100%;padding:12px 16px;border-radius:8px;
-  border:1px solid rgba(255,255,255,.08);
-  background:rgba(255,255,255,.04);
+  border:1px solid var(--border,rgba(255,255,255,.08));
+  background:var(--surface2,rgba(255,255,255,.04));
   color:var(--text);font-size:14px;margin-bottom:14px;outline:none;
-  transition:.2s;font-family:'Segoe UI',sans-serif;
+  transition:.2s;font-family:var(--font,'Segoe UI',sans-serif);
 }
 .auth-input:focus,.auth-select:focus{
   border-color:rgba(255,140,0,.5);
   box-shadow:0 0 0 3px rgba(255,140,0,.1);
   background:rgba(255,140,0,.04);
 }
-.auth-input::placeholder{color:rgba(255,255,255,.2);font-family:'Segoe UI',sans-serif}
-.auth-select option{background:#1a1a20;color:var(--text)}
+.auth-input::placeholder{color:var(--text3,rgba(255,255,255,.2));font-family:var(--font,'Segoe UI',sans-serif)}
+.auth-select option{background:var(--surface,#1a1a20);color:var(--text)}
 /* password wrapper */
 .auth-pass-wrap{position:relative;margin-bottom:14px}
 .auth-pass-wrap .auth-input{margin-bottom:0;padding-right:44px}
@@ -249,7 +249,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
   background:linear-gradient(135deg,#ff8c00,#e67e00);
   color:#fff;font-size:14px;font-weight:800;
   transition:.2s;letter-spacing:.5px;margin-top:4px;
-  font-family:'Segoe UI',sans-serif;
+  font-family:var(--font,'Segoe UI',sans-serif);
   box-shadow:0 4px 20px rgba(255,140,0,.3);
 }
 .auth-btn:hover{background:linear-gradient(135deg,#ffaa33,#ff8c00);
@@ -276,7 +276,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .auth-footer{
   margin-top:28px;text-align:center;z-index:1;
   font-size:11px;color:rgba(255,255,255,.2);
-  font-family:'Segoe UI',sans-serif;letter-spacing:.3px;
+  font-family:var(--font,'Segoe UI',sans-serif);letter-spacing:.3px;
 }
 .auth-footer strong{color:var(--orange);font-weight:700}
 
@@ -603,6 +603,8 @@ tbody tr:hover td{background:rgba(0,210,180,.04)}
 .settings-nav-item.active{background:var(--accent-glow);color:var(--accent);font-weight:700}
 .settings-panel{display:none;padding:20px}
 .settings-panel.active{display:block}
+/* ซ่อน admin-only settings สำหรับ non-admin — JS จะ toggle */
+.hide-admin-items .admin-only{display:none !important}
 .theme-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:12px}
 .theme-card{
   border:2px solid var(--border);border-radius:10px;padding:14px;cursor:pointer;
@@ -1095,11 +1097,11 @@ tbody tr:hover td{background:rgba(0,210,180,.04)}
           <div class="sh-sub">ปรับแต่งระบบ, Theme, API และ Password</div></div></div>
           <div class="card">
             <div class="settings-grid">
-              <div class="settings-nav">
+              <div class="settings-nav" id="settings-nav-wrap">
                 <div class="settings-nav-item active" onclick="switchSettings('s-theme',this)">🎨 Theme & Display</div>
-                <div class="settings-nav-item" onclick="switchSettings('s-api',this)">🔗 API Connection</div>
-                <div class="settings-nav-item" onclick="switchSettings('s-password',this)">🔑 Password ระบบ</div>
-                <div class="settings-nav-item" onclick="switchSettings('s-building',this)">🏢 Building Config</div>
+                <div class="settings-nav-item admin-only" onclick="switchSettings('s-api',this)">🔗 API Connection</div>
+                <div class="settings-nav-item admin-only" onclick="switchSettings('s-password',this)">🔑 Password ระบบ</div>
+                <div class="settings-nav-item admin-only" onclick="switchSettings('s-building',this)">🏢 Building Config</div>
               </div>
               <div>
                 <!-- THEME -->
@@ -1553,18 +1555,21 @@ const _badge = {
 };
 
 const NAV_CONFIG = {
-  // 1. TENANT: เห็นแค่หน้าแจ้งคำขอ OT ของอาคารตัวเอง
-  tenant:   [{id:'tenant',   icon:'🏢', label:'OT Request',   badge:()=>gData.tenantReqs.filter(r=>getStatus(r)==='pending').length}],
+  // 1. TENANT: เห็นแค่หน้าแจ้งคำขอ OT + Settings (Theme only)
+  tenant:   [{id:'tenant',   icon:'🏢', label:'OT Request',   badge:()=>gData.tenantReqs.filter(r=>getStatus(r)==='pending').length},
+             {id:'settings', icon:'⚙️', label:'Display',        badge:()=>0}],
 
-  // 2. CLS: เห็น TENANT / CLS / ENGINEERING / CLS REPORT / SENT TO YARDI ของอาคารตัวเอง
+  // 2. CLS: เห็น TENANT / CLS / ENGINEERING / CLS REPORT / SENT TO YARDI + Settings (Theme only)
   cs:       [{id:'tenant',   icon:'🏢', label:'Tenant',        badge:()=>_badge.tenantPending()},
              {id:'building', icon:'🏗️', label:'CLS',           badge:()=>_badge.clsPending()},
              {id:'eng',      icon:'🔧', label:'Engineering',    badge:()=>_badge.engPending()},
              {id:'cs',       icon:'📊', label:'CLS Report',     badge:()=>0},
-             {id:'yadi',     icon:'📤', label:'Sent to YARDI',  badge:()=>0}],
+             {id:'yadi',     icon:'📤', label:'Sent to YARDI',  badge:()=>0},
+             {id:'settings', icon:'⚙️', label:'Display',        badge:()=>0}],
 
-  // 3. ENGINEERING: เห็นแค่หน้างาน OT ของอาคารตัวเอง
-  eng:      [{id:'eng',      icon:'🔧', label:'งาน OT',        badge:()=>_badge.engPending()}],
+  // 3. ENGINEERING: เห็นแค่หน้างาน OT + Settings (Theme only)
+  eng:      [{id:'eng',      icon:'🔧', label:'งาน OT',        badge:()=>_badge.engPending()},
+             {id:'settings', icon:'⚙️', label:'Display',        badge:()=>0}],
 
   // 4. ADMIN: เห็นทุกอาคาร ทุกหน้า + Users + Settings
   admin:    [{id:'tenant',   icon:'🏢', label:'Tenant',        badge:()=>_badge.tenantPending()},
@@ -3305,6 +3310,20 @@ function getPasswords(){
 }
 
 function renderSettings(){
+  // ซ่อน admin-only menu สำหรับ non-admin
+  const nav = document.getElementById('settings-nav-wrap');
+  if(nav){
+    if(currentRole === 'admin'){
+      nav.classList.remove('hide-admin-items');
+    } else {
+      nav.classList.add('hide-admin-items');
+      // force switch ไปหน้า Theme ถ้าอยู่หน้า admin-only
+      const active = nav.querySelector('.settings-nav-item.active');
+      if(active && active.classList.contains('admin-only')){
+        switchSettings('s-theme', nav.querySelector('.settings-nav-item:not(.admin-only)'));
+      }
+    }
+  }
   // Password list
   const defaults=DEFAULT_PASSWORDS;
   const saved=getPasswords();
