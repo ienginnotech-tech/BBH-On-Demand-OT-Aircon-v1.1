@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
 <title>BBH On-demand OT Aircon V1.0</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Sarabun:wght@400;700&display=swap" rel="stylesheet">
 <style>
 /* ============================================================
    DB HAVEN DESIGN SYSTEM
@@ -21,6 +22,9 @@
   --card:#16161b;--r:4px;--r2:3px;
   --shadow:0 4px 24px rgba(0,0,0,.6);
   --font:'Courier New',Courier,monospace;
+  --font-orbitron:'Orbitron','Courier New',monospace;
+  --font-courier:'Courier New',Courier,monospace;
+  --font-sarabun:'Sarabun','Arial',sans-serif;
   --sidebar-w:240px;
   --orange:#ff8c00;--orange2:#ffaa33;
 }
@@ -58,6 +62,25 @@
   --text:#e4e4e7;--text2:#a0a0ab;--text3:#52525b;
   --orange:#f0a030;--orange2:#fcd34d;
 }
+[data-theme="deepblue"]{
+  --bg:#0a1628;--sidebar:#0d1f3c;--sidebar2:#112348;
+  --surface:#112348;--surface2:#162d5a;
+  --border:rgba(59,130,246,.2);--border2:rgba(59,130,246,.35);
+  --accent:#3b82f6;--accent2:#2563eb;--accent-glow:rgba(59,130,246,.15);
+  --text:#e2e8f0;--text2:#93c5fd;--text3:#3b5278;
+  --orange:#f59e0b;--orange2:#fcd34d;
+}
+[data-theme="deepblue"] .sidebar,
+[data-theme="deepblue"] .sidebar *{color:#e2e8f0}
+[data-theme="deepblue"] .nav-item{color:#93c5fd !important}
+[data-theme="deepblue"] .nav-item:hover{background:rgba(59,130,246,.15);color:#fff !important}
+[data-theme="deepblue"] .nav-item.active{background:rgba(59,130,246,.2);color:#fff !important}
+[data-theme="deepblue"] .brand-title{color:#fff !important}
+[data-theme="deepblue"] .brand-sub{color:#93c5fd !important}
+[data-theme="deepblue"] .user-name{color:#fff !important}
+[data-theme="deepblue"] .user-role{color:#93c5fd !important}
+[data-theme="deepblue"] .logout-btn{color:#93c5fd !important}
+[data-theme="deepblue"] th{background:#0d1f3c;color:#93c5fd}
 [data-theme="blue"]{
   --bg:#f0f4ff;--sidebar:#1a3461;--sidebar2:#234587;
   --surface:#ffffff;--surface2:#eaf0ff;
@@ -1085,29 +1108,22 @@ tbody tr:hover td{background:rgba(0,210,180,.04)}
                   <div style="font-size:11px;color:var(--text2);margin-bottom:12px">เปลี่ยน Color Scheme ของ BBH OT Aircon ได้ทันที</div>
                   <div class="theme-grid">
                     <div class="theme-card selected" id="tc-navy" onclick="setTheme('navy')">
-                      <div class="theme-swatch" style="background:linear-gradient(135deg,#0D1117,#2F81F7)"></div>
-                      <div class="theme-name">Dark Navy</div>
-                      <div class="theme-desc">Classic Dark · GitHub Style</div>
-                    </div>
-                    <div class="theme-card" id="tc-green" onclick="setTheme('green')">
-                      <div class="theme-swatch" style="background:linear-gradient(135deg,#0A0F0A,#4ADE80)"></div>
-                      <div class="theme-name">Dark Green</div>
-                      <div class="theme-desc">Forest · Matrix</div>
-                    </div>
-                    <div class="theme-card" id="tc-gold" onclick="setTheme('gold')">
-                      <div class="theme-swatch" style="background:linear-gradient(135deg,#0C0A00,#F59E0B)"></div>
-                      <div class="theme-name">Dark Gold</div>
-                      <div class="theme-desc">Premium · Luxury</div>
+                      <div class="theme-swatch" style="background:linear-gradient(135deg,#0D1117,#00C896)"></div>
+                      <div style="font-size:18px;margin-bottom:2px">🌙</div>
+                      <div class="theme-name">Dark</div>
+                      <div class="theme-desc">พื้นเข้ม (Default)</div>
                     </div>
                     <div class="theme-card" id="tc-gray" onclick="setTheme('gray')">
                       <div class="theme-swatch" style="background:linear-gradient(135deg,#18181b,#00c896)"></div>
+                      <div style="font-size:18px;margin-bottom:2px">☁️</div>
                       <div class="theme-name">Gray</div>
-                      <div class="theme-desc">สบายตา · Neutral</div>
+                      <div class="theme-desc">พื้นเทา</div>
                     </div>
-                    <div class="theme-card" id="tc-blue" onclick="setTheme('blue')">
-                      <div class="theme-swatch" style="background:linear-gradient(135deg,#dbe4ff,#4f46e5)"></div>
-                      <div class="theme-name">Blue Light</div>
-                      <div class="theme-desc">กลางวัน · Office</div>
+                    <div class="theme-card" id="tc-deepblue" onclick="setTheme('deepblue')">
+                      <div class="theme-swatch" style="background:linear-gradient(135deg,#0a1628,#3b82f6)"></div>
+                      <div style="font-size:18px;margin-bottom:2px">🌊</div>
+                      <div class="theme-name">Deep Blue</div>
+                      <div class="theme-desc">พื้นน้ำเงินเข้ม</div>
                     </div>
                   </div>
                   <div style="margin-top:20px">
@@ -1117,6 +1133,29 @@ tbody tr:hover td{background:rgba(0,210,180,.04)}
                       <option value="en">🇬🇧 English</option>
                     </select>
                   </div>
+                  <!-- FONT SECTION -->
+                  <div style="margin-top:20px">
+                    <div style="font-size:13px;font-weight:700;margin-bottom:12px">🔤 FONT / ตัวอักษร</div>
+                    <div class="theme-grid">
+                      <div class="theme-card selected" id="fc-courier" onclick="setFont('courier')">
+                        <div style="font-family:'Courier New',monospace;font-size:20px;font-weight:700;margin-bottom:4px;color:var(--accent)">Aa</div>
+                        <div class="theme-name" style="font-family:'Courier New',monospace">Courier New</div>
+                        <div class="theme-desc">Classic · Mono</div>
+                      </div>
+                      <div class="theme-card" id="fc-orbitron" onclick="setFont('orbitron')">
+                        <div style="font-family:'Orbitron',monospace;font-size:18px;font-weight:700;margin-bottom:4px;color:var(--accent)">Aa</div>
+                        <div class="theme-name" style="font-family:'Orbitron',monospace">Orbitron</div>
+                        <div class="theme-desc">Digital · Tech</div>
+                      </div>
+                      <div class="theme-card" id="fc-sarabun" onclick="setFont('sarabun')">
+                        <div style="font-family:'Sarabun',sans-serif;font-size:20px;font-weight:700;margin-bottom:4px;color:var(--accent)">Aa ก</div>
+                        <div class="theme-name" style="font-family:'Sarabun',sans-serif">Sarabun</div>
+                        <div class="theme-desc">Thai · Clean</div>
+                      </div>
+                    </div>
+                    <div style="font-size:10px;color:var(--text3);margin-top:6px">💡 Sarabun รองรับภาษาไทยที่สุด · Orbitron = Digital Style · Courier New = Classic Mono</div>
+                  </div>
+
                   <div style="margin-top:20px">
                     <div style="font-size:13px;font-weight:700;margin-bottom:8px">📐 Sidebar</div>
                     <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer">
@@ -1492,23 +1531,24 @@ let _sheetUsers = [];
 // ---- NAV CONFIG per role ----
 // helper badge functions
 const _badge = {
-  // นับเฉพาะที่ยังไม่ Acknowledge (ค่าต้องไม่ใช่ 'Acknowledge' หรือ 'Reject')
+  // filter เฉพาะอาคารของ user ที่ login (ยกเว้น ALL/admin)
+  _bld: (r) => !currentBuilding || currentBuilding==='ALL' || (r['Building']||'').trim()===currentBuilding,
   tenantPending: ()=> gData.buildingAssigns.filter(r=> {
     const ack = (r['Admin helpdesk (Acknowledge/Reject)']||'').trim().toLowerCase();
     const status = (r['Status']||'').trim();
-    return status === 'Current' && ack !== 'acknowledge' && ack !== 'reject';
+    return status==='Current' && ack!=='acknowledge' && ack!=='reject' && _badge._bld(r);
   }).length,
   clsPending: ()=> gData.buildingAssigns.filter(r=> {
     const ack = (r['Admin helpdesk (Acknowledge/Reject)']||'').trim().toLowerCase();
     const status = (r['Status']||'').trim();
-    return status === 'Current' && ack !== 'acknowledge' && ack !== 'reject';
+    return status==='Current' && ack!=='acknowledge' && ack!=='reject' && _badge._bld(r);
   }).length,
   // Engineering: งานที่ Assign แล้ว ยังไม่ปิด และไม่ถูก Reject/ยกเลิก
   engPending: ()=> gData.engWork.filter(r=> {
     const ack = (r['Engineering Action(Acknowledge/Reject)']||'').trim();
     const closed = (r['Close_OT-Air(Time)']||'').trim();
     const status = (r['Status']||'').trim();
-    return r['Staff Name'] && !closed && ack !== 'Reject' && status === 'Current';
+    return r['Staff Name'] && !closed && ack!=='Reject' && status==='Current' && _badge._bld(r);
   }).length,
 };
 
@@ -2686,15 +2726,56 @@ function initUnitRows(){
 
 function addUnitRow(){
   if(_unitRows >= 5){ toast('เพิ่มได้สูงสุด 5 Unit'); return; }
+  const i = _unitRows;
   _unitRows++;
-  renderUnitRows();
+  // เพิ่มเฉพาะ row ใหม่ต่อท้าย ไม่ re-render ทั้งหมด
+  const wrap = document.getElementById('unit-rows-wrap');
+  if(!wrap) return;
+  const bld = document.getElementById('nr-bld')?.value || '';
+  const allTenants = EXCEL_DATA.tenants || dbData.tenants || [];
+  const filteredUnits = bld
+    ? allTenants.filter(u => u['Building']===bld && u['Space'] && u['Status']==='Current' && u['Name'])
+    : [];
+  const unitOptions = filteredUnits.length
+    ? filteredUnits.map(u => `<option value="${u['Space']||''}">[${u['Space']||''}] ${(u['Name']||'').substring(0,25)} · ${u['Area']||'?'}m²</option>`).join('')
+    : '<option value="">— เลือก Building ก่อน —</option>';
+  const timeFields = _timeMode === 'diff' ? `
+    <div class="fg"><label class="flabel" style="font-size:10px">เวลาเริ่ม</label>
+      <input class="finput" type="time" id="ur-start-${i}" value="20:00"></div>
+    <div class="fg"><label class="flabel" style="font-size:10px">เวลาสิ้นสุด</label>
+      <input class="finput" type="time" id="ur-end-${i}" value="00:00"></div>` : '';
+  const div = document.createElement('div');
+  div.id = `unit-row-${i}`;
+  div.style.cssText = 'background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:8px';
+  div.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+      <span style="font-size:11px;font-weight:700;color:var(--accent)">Unit ${i+1}</span>
+      <button class="btn btn-r btn-sm" onclick="removeUnitRow(${i})" style="padding:2px 8px;font-size:10px">✕ ลบ</button>
+    </div>
+    <div class="form-grid" style="gap:8px">
+      <div class="fg"><label class="flabel" style="font-size:10px">Space / Unit</label>
+        <input class="finput" id="ur-search-${i}" type="text" placeholder="พิมพ์เพื่อค้นหา..."
+          oninput="filterUnitRowList(${i})" style="margin-bottom:3px;font-size:12px">
+        <select class="fselect" id="ur-unit-${i}" size="3" style="height:auto;min-height:60px;font-size:12px"
+          onchange="fillUnitRowTenant(${i})">${unitOptions}</select>
+      </div>
+      <div class="fg"><label class="flabel" style="font-size:10px">Tenant</label>
+        <div class="finput" id="ur-tenant-${i}"
+          style="color:var(--accent);background:var(--surface2);font-size:11px;min-height:36px;height:auto;white-space:pre-wrap;word-break:break-word;cursor:default;user-select:text"></div>
+        ${timeFields}
+      </div>
+    </div>`;
+  wrap.appendChild(div);
+  const btn = document.getElementById('btn-add-unit');
+  if(btn) btn.disabled = _unitRows >= 5;
 }
 
 function removeUnitRow(idx){
-  if(_unitRows <= 1) return;
-  _unitRows--;
-  renderUnitRows();
-  // ลบ data ของ row นั้น
+  const row = document.getElementById(`unit-row-${idx}`);
+  if(row) row.remove();
+  _unitRows = Math.max(1, _unitRows - 1);
+  const btn = document.getElementById('btn-add-unit');
+  if(btn) btn.disabled = false;
 }
 
 function renderUnitRows(){
@@ -3271,8 +3352,28 @@ function setTheme(theme){
   localStorage.setItem('dbh_theme',theme);
   document.querySelectorAll('.theme-card').forEach(c=>c.classList.remove('selected'));
   document.getElementById('tc-'+theme)?.classList.add('selected');
-  const names={navy:'Dark Navy',green:'Dark Green',gold:'Dark Gold',gray:'Gray (สบายตา)',blue:'Blue Light'};
+  const names={navy:'🌙 Dark',gray:'☁️ Gray',deepblue:'🌊 Deep Blue'};
   toast('🎨 Theme: '+(names[theme]||theme));
+}
+
+function setFont(font){
+  const fonts = {
+    courier: "'Courier New',Courier,monospace",
+    orbitron: "'Orbitron','Courier New',monospace",
+    sarabun: "'Sarabun','Arial',sans-serif",
+  };
+  document.documentElement.style.setProperty('--font', fonts[font]||fonts.courier);
+  document.body.style.fontFamily = fonts[font]||fonts.courier;
+  localStorage.setItem('dbh_font', font);
+  document.querySelectorAll('[id^="fc-"]').forEach(c=>c.classList.remove('selected'));
+  document.getElementById('fc-'+font)?.classList.add('selected');
+  const names={courier:'Courier New',orbitron:'Orbitron',sarabun:'Sarabun'};
+  toast('🔤 Font: '+(names[font]||font));
+}
+
+function applySavedFont(){
+  const saved = localStorage.getItem('dbh_font') || 'courier';
+  setFont(saved);
 }
 
 // Tooltip element สำหรับ compact sidebar
@@ -3582,6 +3683,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   const savedTheme=localStorage.getItem('dbh_theme')||'navy';
   document.body.setAttribute('data-theme',savedTheme);
   document.getElementById('tc-'+savedTheme)?.classList.add('selected');
+  applySavedFont();
   // Enter key on login
   document.getElementById('login-pass').addEventListener('keypress',e=>{if(e.key==='Enter')doLogin();});
   loadApiUrl();
