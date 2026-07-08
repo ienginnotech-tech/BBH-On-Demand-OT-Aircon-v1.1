@@ -2339,14 +2339,20 @@ function renderCSRows(data, wrap){
     let total      = parseFloat(String(r['Total Cost OT.Air(Rate Charge+Area)_THB']||'0').replace(/,/g,''))||0;
     // ยังไม่มีพื้นที่เช่าจริง (Engineering ยังไม่เปิด-ปิดแอร์) — ยังคำนวณค่าใช้จ่ายไม่ได้ ให้แสดง "-" แทน
     const hasActualArea = !!(r['Cal_Rent Area(SQ.M)']);
-    if(isM && mHrs > 0 && hasActualArea){
-      const rc = (allRateCodes.length?allRateCodes:EXCEL_DATA.rates).find(x=>x['Code OT Air']===(r['Code OT Air_Fee']||r['Code OT Air']));
-      if(rc){
+    const rc = (allRateCodes.length?allRateCodes:EXCEL_DATA.rates).find(x=>x['Code OT Air']===(r['Code OT Air_Fee']||r['Code OT Air']));
+    if(hasActualArea && rc){
+      if(isM && mHrs > 0){
         // Monthly: แยกคำนวณ จ-ศ vs ส-อ/นักขัตฤกษ์ ตาม Public Holidays ของแต่ละอาคาร
         const split = calcMonthlySplitCharge(r, rc, mHrs);
         areaCharge = split.areaCharge;
         minCharge  = split.minCharge;
         total = minCharge + areaCharge;
+      } else if(!isM){
+        // OT รายวัน — คำนวณเองในเว็บแทนการอ่านจาก Sheet กันปัญหาสูตร/ค่าตายในชีตผิดพลาด
+        const daily = calcDailyCharge(r, rc, hrs);
+        areaCharge = daily.areaCharge;
+        minCharge  = daily.minCharge;
+        total = daily.total;
       }
     }
     const costDash = !hasActualArea;
@@ -3246,14 +3252,20 @@ function showCSDetail(i){
   let total      = parseFloat(String(r['Total Cost OT.Air(Rate Charge+Area)_THB']||'0').replace(/,/g,''))||0;
   const hasActualArea = !!(r['Cal_Rent Area(SQ.M)']);
   let splitInfo = null;
-  if(isM && mHrs > 0 && hasActualArea){
-    const rc = (allRateCodes.length?allRateCodes:EXCEL_DATA.rates).find(x=>x['Code OT Air']===(r['Code OT Air_Fee']||r['Code OT Air']));
-    if(rc){
+  const rc = (allRateCodes.length?allRateCodes:EXCEL_DATA.rates).find(x=>x['Code OT Air']===(r['Code OT Air_Fee']||r['Code OT Air']));
+  if(hasActualArea && rc){
+    if(isM && mHrs > 0){
       const split = calcMonthlySplitCharge(r, rc, mHrs);
       areaCharge = split.areaCharge;
       minCharge  = split.minCharge;
       total = minCharge + areaCharge;
       splitInfo = split.breakdown;
+    } else if(!isM){
+      // OT รายวัน — คำนวณเองในเว็บแทนการอ่านจาก Sheet กันปัญหาสูตร/ค่าตายในชีตผิดพลาด
+      const daily = calcDailyCharge(r, rc, hrs);
+      areaCharge = daily.areaCharge;
+      minCharge  = daily.minCharge;
+      total = daily.total;
     }
   }
   const costDash = !hasActualArea;
@@ -4034,6 +4046,27 @@ function countMonthlyDayTypes(sd, ed, bld){
   return {weekday, weekend, total: weekday+weekend};
 }
 
+// คำนวณค่าใช้จ่ายพื้นฐานจาก Rate Code เดียว (ใช้ทั้งกับ Monthly แบบไม่แยก และ OT รายวันทั่วไป)
+function calcBaseCharge(r, rc, hrs){
+  const hrRate = parseFloat(rc['Addtional charge(THB/Hour)']||0);
+  const mRate  = parseFloat(rc['Addtional charge(THB/Month)']||0);
+  const aRate  = parseFloat(rc['Charge per Area(THB/M2)']||0);
+  const area   = parseFloat(r['Cal_Rent Area(SQ.M)']||r['Area']||0);
+  const minCharge = parseFloat(rc['Minimum charge(THB)']||0);
+  let areaCharge;
+  if(aRate > 0)       areaCharge = aRate * area * hrs;
+  else if(hrRate > 0) areaCharge = hrRate * hrs;
+  else if(mRate > 0)  areaCharge = mRate;
+  else                areaCharge = 0;
+  return { areaCharge, minCharge };
+}
+// คำนวณค่าใช้จ่าย OT รายวัน (ไม่ใช่ Monthly) — คำนวณในเว็บเองแทนการอ่านค่าจาก Sheet
+// เพื่อกันปัญหาสูตร/ค่าตายใน Sheet ผิดพลาดโดยไม่รู้ตัว
+function calcDailyCharge(r, rc, hrs){
+  const { areaCharge, minCharge } = calcBaseCharge(r, rc, hrs);
+  return { areaCharge, minCharge, total: minCharge + areaCharge };
+}
+
 // คำนวณค่าใช้จ่าย Monthly โดยแยก จ-ศ (rc ปกติ) กับ ส-อ/นักขัตฤกษ์ (Rate Code เฉพาะของอาคาร)
 // คืนค่า {areaCharge, minCharge, breakdown} — breakdown เป็น null ถ้าอาคารนั้นไม่มีการแยก (เช่น UBCII)
 function calcMonthlySplitCharge(r, rc, mHrs){
@@ -4050,12 +4083,8 @@ function calcMonthlySplitCharge(r, rc, mHrs){
 
   if(!holidayCode || !sd || !ed || totalDaysInRange<=0){
     // ไม่มีการแยก Rate (UBCII หรือข้อมูลไม่ครบ) — ใช้ logic เดิม (rate เดียวตลอดเดือน)
-    let areaCharge;
-    if(aRate > 0)       areaCharge = aRate * area * mHrs;
-    else if(hrRate > 0) areaCharge = hrRate * mHrs;
-    else if(mRate > 0)  areaCharge = mRate;
-    else                areaCharge = 0;
-    return { areaCharge, minCharge, breakdown:null };
+    const base = calcBaseCharge(r, rc, mHrs);
+    return { areaCharge: base.areaCharge, minCharge: base.minCharge, breakdown:null };
   }
 
   const rcList = (allRateCodes.length?allRateCodes:EXCEL_DATA.rates);
