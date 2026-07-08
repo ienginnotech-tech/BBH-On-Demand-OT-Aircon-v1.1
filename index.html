@@ -1102,6 +1102,7 @@ tbody tr:hover td{background:rgba(0,210,180,.04)}
                 <div class="settings-nav-item admin-only" onclick="switchSettings('s-api',this)">🔗 API Connection</div>
                 <div class="settings-nav-item admin-only" onclick="switchSettings('s-password',this)">🔑 Password ระบบ</div>
                 <div class="settings-nav-item admin-only" onclick="switchSettings('s-building',this)">🏢 Building Config</div>
+                <div class="settings-nav-item admin-only" onclick="switchSettings('s-holidays',this)">📅 Public Holidays</div>
               </div>
               <div>
                 <!-- THEME -->
@@ -1201,6 +1202,36 @@ tbody tr:hover td{background:rgba(0,210,180,.04)}
                 <div class="settings-panel" id="s-building">
                   <div style="font-size:13px;font-weight:700;margin-bottom:12px">🏢 Building Configuration</div>
                   <div id="bld-config-list"></div>
+                </div>
+
+                <!-- PUBLIC HOLIDAYS PANEL -->
+                <div class="settings-panel" id="s-holidays">
+                  <div style="font-size:13px;font-weight:700;margin-bottom:4px">📅 Public Holidays — วันหยุดนักขัตฤกษ์</div>
+                  <div style="font-size:11px;color:var(--text3);margin-bottom:16px">แยกตามอาคาร · ใช้คำนวณ Rate เสาร์-อาทิตย์-นักขัตฤกษ์ในคำขอรายเดือน</div>
+
+                  <!-- Building Tabs -->
+                  <div style="display:flex;gap:6px;margin-bottom:16px">
+                    <button class="btn btn-p btn-sm" onclick="switchHolidayBld('BTE',this)" id="hbtn-BTE">🏢 BTE</button>
+                    <button class="btn btn-o btn-sm" onclick="switchHolidayBld('BTB',this)" id="hbtn-BTB">🏢 BTB</button>
+                    <button class="btn btn-o btn-sm" onclick="switchHolidayBld('UBCII',this)" id="hbtn-UBCII">🏢 UBCII</button>
+                  </div>
+
+                  <div id="holiday-bld-label" style="font-size:12px;font-weight:700;color:var(--accent);margin-bottom:8px">BTE</div>
+
+                  <!-- Add holiday -->
+                  <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+                    <input type="date" id="holiday-date-input" class="finput" style="width:160px">
+                    <input type="text" id="holiday-name-input" class="finput" placeholder="ชื่อวันหยุด เช่น วันชาติ" style="flex:1;min-width:150px">
+                    <button class="btn btn-g btn-sm" onclick="addHoliday()">+ เพิ่ม</button>
+                  </div>
+
+                  <!-- Holiday list -->
+                  <div id="holiday-list-wrap" style="max-height:320px;overflow-y:auto"></div>
+
+                  <div style="margin-top:12px;display:flex;gap:8px">
+                    <button class="btn btn-p btn-sm" onclick="saveHolidays()">💾 บันทึกลง Sheet</button>
+                    <span id="holiday-save-status" style="font-size:11px;color:var(--text3);align-self:center"></span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1389,7 +1420,9 @@ tbody tr:hover td{background:rgba(0,210,180,.04)}
   <div class="mbox">
     <div class="mtitle">👷 มอบหมายงานช่าง <button class="mclose" onclick="closeMod('mod-assign')">✕</button></div>
     <div class="form-grid">
-      <div class="fg"><label class="flabel">เลขที่คำขอ</label><input class="finput" id="as-req" type="text" readonly style="color:var(--accent);background:var(--surface2);cursor:default"></div>
+      <div class="fg"><label class="flabel">เลขที่คำขอ</label><input class="finput" id="as-req" type="text" readonly style="color:var(--accent);background:var(--surface2);cursor:default">
+        <div id="as-req-date" style="font-size:11px;color:var(--amber);margin-top:3px;padding:4px 8px;background:var(--surface2);border-radius:4px"></div>
+      </div>
       <div class="fg"><label class="flabel">ช่าง</label><select class="fselect" id="as-staff"><option>A</option><option>B</option><option>C</option></select></div>
       <div class="fg"><label class="flabel">Shift</label><select class="fselect" id="as-shift"><option>Day</option><option>Afternoon</option><option>Night</option></select></div>
       <div class="fg"><label class="flabel">Tenant_Level Charge</label><select class="fselect" id="as-level" onchange="filterAssignRateCodes()">
@@ -2195,7 +2228,7 @@ function renderEngRows(data, wrap){
     ...(gData.engWork||[]).filter(r=>r['Engineering Action(Acknowledge/Reject)']==='Reject').map(r=>r['OT-AIR Work Request No.']),
   ]);
   wrap.innerHTML=`<div class="table-wrap"><table>
-    <thead><tr><th>เลขที่</th><th>Bld</th><th>Space</th><th>เวลา Plan</th><th>ช่าง</th><th>Rate Code</th><th>เปิดจริง</th><th>ปิดจริง</th><th>ชม.จริง</th><th>สถานะ</th><th></th></tr></thead>
+    <thead><tr><th>เลขที่</th><th>Bld</th><th>Space</th><th>วันที่ขอ</th><th>เวลา Plan</th><th>ช่าง</th><th>Rate Code</th><th>เปิดจริง</th><th>ปิดจริง</th><th>ชม.จริง</th><th>สถานะ</th><th></th></tr></thead>
     <tbody>${data.map((r,i)=>{
       const isRejected=rejectSet.has(r['OT-AIR Work Request No.']);
       const ack=r['Engineering Action(Acknowledge/Reject)'];
@@ -2227,11 +2260,12 @@ function renderEngRows(data, wrap){
         <td><strong style="color:${isRejected?'var(--rose)':'var(--accent)'}">${r['OT-AIR Work Request No.']||'—'}</strong>${monthlyBadgeFor(r)}</td>
         <td>${bldTag(r['Building'])}</td>
         <td><strong>${r['Space']||'—'}</strong></td>
+        <td style="font-size:11px;color:var(--amber)">${r['Date']||r['Start Date']||'—'}</td>
         <td style="font-size:11px;white-space:nowrap">${r['Start time']||'—'}–${r['Finish time']||'—'}</td>
         <td>${r['Staff Name']||'—'}</td>
         <td style="font-size:10px;color:var(--accent)">${(r['Code OT Air']||'—').replace('XXXCH_OT_AIR_','')}</td>
-        <td style="color:var(--green);font-weight:600">${r['Open_OT-Air(Time)']||'—'}</td>
-        <td style="color:var(--rose);font-weight:600">${r['Close_OT-Air(Time)']||'—'}</td>
+        <td style="color:var(--green);font-weight:600">${r['Open_OT-Air(Date)']?r['Open_OT-Air(Date)']+' ':''}<span style="color:var(--jade)">${r['Open_OT-Air(Time)']||'—'}</span></td>
+        <td style="color:var(--rose);font-weight:600">${r['Close_OT-Air(Date)']?r['Close_OT-Air(Date)']+' ':''}<span style="color:var(--rose)">${r['Close_OT-Air(Time)']||'—'}</span></td>
         <td>${(r['Cal_Actual_Hours']&&parseFloat(r['Cal_Actual_Hours'])>0)?`<strong style="color:var(--green)">${parseFloat(r['Cal_Actual_Hours']).toFixed(2)} ชม.</strong>`:(r['Open_OT-Air(Time)']&&r['Close_OT-Air(Time)'])?`<strong style="color:var(--green)">${((timeToMin(r['Close_OT-Air(Time)'])-timeToMin(r['Open_OT-Air(Time)'])+1440)%1440/60).toFixed(2)} ชม.</strong>`:'—'}</td>
         <td>${stTag}</td>
         <td style="white-space:nowrap">${action}</td>
@@ -2392,6 +2426,9 @@ function doAssign(i){
   const sel=document.getElementById('as-req');
   sel.value=r['OT-AIR Work Request No.']||'';
   sel.dataset.idx=i;
+  // แสดงวันที่ขอใต้เลขคำขอ
+  const reqDateEl = document.getElementById('as-req-date');
+  if(reqDateEl) reqDateEl.textContent = `วันที่ขอ: ${r['Date']||r['Start Date']||'—'} | เวลา: ${r['Start time']||'—'}–${r['Finish time']||'—'}`;
 
   // Populate Rate Code — กรองตาม Building
   const bld = r['Building'] || '';
@@ -2567,7 +2604,8 @@ function engAction(i,type){
     <div><span>เลขที่</span><strong>${r['OT-AIR Work Request No.']||'—'}</strong></div>
     <div><span>Building</span><strong>${r['Building']||'—'}</strong></div>
     <div><span>Space</span><strong>${r['Space']||'—'}</strong></div>
-    <div><span>เวลา Plan</span><strong>${r['Start time']||'—'}–${r['Finish time']||'—'}</strong></div>
+    <div><span>วันที่ขอ</span><strong style="color:var(--amber)">${r['Date']||r['Start Date']||'—'}</strong></div>
+      <div><span>เวลา Plan</span><strong>${r['Start time']||'—'}–${r['Finish time']||'—'}</strong></div>
     ${r['Open_OT-Air(Time)']?`<div><span>เปิดแล้ว</span><strong style="color:var(--green)">${r['Open_OT-Air(Time)']}</strong></div>`:''}`;
   openMod('mod-eng-action');
 }
@@ -3348,7 +3386,115 @@ function getPasswords(){
   return result;
 }
 
+// ============================================================
+// PUBLIC HOLIDAYS MANAGEMENT
+// ============================================================
+let _holidays = { BTE: [], BTB: [], UBCII: [] }; // {date:'2026-07-28',name:'วันชาติ'}
+let _currentHolidayBld = 'BTE';
+
+function switchHolidayBld(bld, btn){
+  _currentHolidayBld = bld;
+  document.querySelectorAll('[id^="hbtn-"]').forEach(b=>{
+    b.className = 'btn btn-o btn-sm';
+  });
+  if(btn) btn.className = 'btn btn-p btn-sm';
+  document.getElementById('holiday-bld-label').textContent = bld;
+  renderHolidayList();
+}
+
+function renderHolidayList(){
+  const wrap = document.getElementById('holiday-list-wrap');
+  if(!wrap) return;
+  const list = (_holidays[_currentHolidayBld]||[]).sort((a,b)=>a.date.localeCompare(b.date));
+  if(!list.length){
+    wrap.innerHTML = '<div style="color:var(--text3);font-size:12px;padding:8px">ยังไม่มีวันหยุด — กดเพิ่มด้านบน</div>';
+    return;
+  }
+  wrap.innerHTML = list.map((h,i)=>`
+    <div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--surface2);border-radius:6px;margin-bottom:4px">
+      <span style="font-size:13px">📅</span>
+      <strong style="color:var(--accent);font-size:12px;min-width:90px">${h.date}</strong>
+      <span style="font-size:12px;flex:1">${h.name||'วันหยุดนักขัตฤกษ์'}</span>
+      <button class="btn btn-r btn-sm" onclick="removeHoliday(${i})" style="padding:2px 8px;font-size:10px">✕</button>
+    </div>`).join('');
+}
+
+function addHoliday(){
+  const date = document.getElementById('holiday-date-input')?.value;
+  const name = document.getElementById('holiday-name-input')?.value?.trim() || 'วันหยุดนักขัตฤกษ์';
+  if(!date){ toast('⚠️ กรุณาเลือกวันที่'); return; }
+  if(!_holidays[_currentHolidayBld]) _holidays[_currentHolidayBld] = [];
+  // ตรวจซ้ำ
+  if(_holidays[_currentHolidayBld].find(h=>h.date===date)){
+    toast('⚠️ วันที่นี้มีอยู่แล้ว'); return;
+  }
+  _holidays[_currentHolidayBld].push({date, name});
+  document.getElementById('holiday-date-input').value = '';
+  document.getElementById('holiday-name-input').value = '';
+  renderHolidayList();
+  toast(`✅ เพิ่ม ${date} — ${name} (${_currentHolidayBld})`);
+}
+
+function removeHoliday(idx){
+  const list = (_holidays[_currentHolidayBld]||[]).sort((a,b)=>a.date.localeCompare(b.date));
+  const item = list[idx];
+  if(!item) return;
+  _holidays[_currentHolidayBld] = _holidays[_currentHolidayBld].filter(h=>h.date!==item.date);
+  renderHolidayList();
+}
+
+async function saveHolidays(){
+  const status = document.getElementById('holiday-save-status');
+  if(status) status.textContent = '⏳ กำลังบันทึก...';
+  try{
+    if(USE_LIVE_API){
+      await apiGET({action:'saveHolidays', data: encodeURIComponent(JSON.stringify(_holidays))});
+    }
+    // เก็บใน localStorage ด้วยเป็น backup
+    localStorage.setItem('bbh_holidays', JSON.stringify(_holidays));
+    if(status) status.textContent = '✅ บันทึกแล้ว ' + new Date().toLocaleTimeString('th-TH');
+    toast('✅ บันทึกวันหยุดเรียบร้อย');
+  }catch(e){
+    if(status) status.textContent = '❌ Error: '+e.message;
+  }
+}
+
+async function loadHolidays(){
+  try{
+    // โหลดจาก Sheet ก่อน
+    if(USE_LIVE_API){
+      const res = await apiGET({action:'getHolidays'});
+      if(res && res.holidays) { _holidays = res.holidays; return; }
+    }
+  }catch(e){}
+  // Fallback localStorage
+  try{
+    const saved = localStorage.getItem('bbh_holidays');
+    if(saved) _holidays = JSON.parse(saved);
+  }catch(e){}
+}
+
+// Helper: ตรวจว่าวันที่เป็นวันหยุดของ Building นั้นไหม
+function isHoliday(dateStr, bld){
+  const list = _holidays[bld] || [];
+  return list.some(h => h.date === dateStr);
+}
+
+// Helper: ตรวจว่าเป็น เสาร์-อาทิตย์ หรือนักขัตฤกษ์
+function isWeekendOrHoliday(dateStr, bld){
+  const d = new Date(dateStr);
+  const dow = d.getDay(); // 0=อา, 6=ส
+  return dow === 0 || dow === 6 || isHoliday(dateStr, bld);
+}
+
+// Helper: ตรวจว่าเป็น จ-ศ ปกติ
+function isWeekday(dateStr, bld){
+  return !isWeekendOrHoliday(dateStr, bld);
+}
+
 function renderSettings(){
+  loadHolidays().then(()=>renderHolidayList());
+  switchHolidayBld('BTE', document.getElementById('hbtn-BTE'));
   // ซ่อน admin-only menu สำหรับ non-admin
   const nav = document.getElementById('settings-nav-wrap');
   if(nav){
