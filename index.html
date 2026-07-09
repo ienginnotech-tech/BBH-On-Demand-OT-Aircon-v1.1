@@ -3287,6 +3287,7 @@ function showCSDetail(i){
   let total      = parseFloat(String(r['Total Cost OT.Air(Rate Charge+Area)_THB']||'0').replace(/,/g,''))||0;
   const hasActualArea = !!(r['Cal_Rent Area(SQ.M)']);
   let dayInfo = null;
+  let rateInfo = null;
   const rc = (allRateCodes.length?allRateCodes:EXCEL_DATA.rates).find(x=>x['Code OT Air']===(r['Code OT Air_Fee']||r['Code OT Air']));
   if(hasActualArea && rc){
     if(isM && mHrs > 0){
@@ -3296,16 +3297,20 @@ function showCSDetail(i){
       minCharge  = monthly.minCharge;
       total = minCharge + areaCharge;
       if(monthly.minChargePerDay > 0 && monthly.dayCount > 0) dayInfo = monthly;
+      rateInfo = monthly;
     } else if(!isM){
       // OT รายวัน — คำนวณเองในเว็บแทนการอ่านจาก Sheet กันปัญหาสูตร/ค่าตายในชีตผิดพลาด
       const daily = calcDailyCharge(r, rc, hrs);
       areaCharge = daily.areaCharge;
       minCharge  = daily.minCharge;
       total = daily.total;
+      rateInfo = daily;
     }
   }
   const costDash = !hasActualArea;
   const minChargeLabel = dayInfo ? `ขั้นต่ำ (฿${num(dayInfo.minChargePerDay)} × ${dayInfo.dayCount} วัน)` : 'ขั้นต่ำ';
+  const rateLabel = rateInfo && rateInfo.rateType==='hour' ? 'อัตรา (฿/ชม.)' : rateInfo && rateInfo.rateType==='area' ? 'อัตรา (฿/ตร.ม./ชม.)' : rateInfo && rateInfo.rateType==='month' ? 'อัตรา (คงที่/เดือน)' : '';
+  const rateRow = rateInfo && rateInfo.rateType!=='none' ? `<div class="calc-row"><span>${rateLabel}</span><span style="font-size:11px;color:var(--text2)">${formatRateFormula(rateInfo)}</span></div>` : '';
   document.getElementById('detail-title').firstChild.textContent='🧾 รายละเอียดการคำนวณ ';
   document.getElementById('detail-content').innerHTML=`
     <div class="irow" style="margin-bottom:12px">
@@ -3326,6 +3331,7 @@ function showCSDetail(i){
       <div class="calc-row total"><span>รวมทั้งหมด</span><span>—</span></div>
       <div style="font-size:10px;color:var(--text3);margin-top:4px">* ยังไม่ได้เปิด-ปิดระบบ Aircon ใน Engineering — ยังคำนวณค่าใช้จ่ายไม่ได้</div>`
       : `<div class="calc-row"><span>${minChargeLabel}</span><span>฿${num(minCharge)}</span></div>
+      ${rateRow}
       <div class="calc-row"><span>Area Charge</span><span>฿${num(areaCharge)}</span></div>
       <div class="calc-row total"><span>รวมทั้งหมด</span><span>฿${num(total)}</span></div>`}
     </div>
@@ -4088,24 +4094,25 @@ function calcBaseCharge(r, rc, hrs){
   const aRate  = parseFloat(rc['Charge per Area(THB/M2)']||0);
   const area   = parseFloat(r['Cal_Rent Area(SQ.M)']||r['Area']||0);
   const minCharge = parseFloat(rc['Minimum charge(THB)']||0);
-  let areaCharge;
-  if(aRate > 0)       areaCharge = aRate * area * hrs;
-  else if(hrRate > 0) areaCharge = hrRate * hrs;
-  else if(mRate > 0)  areaCharge = mRate;
-  else                areaCharge = 0;
-  return { areaCharge, minCharge };
+  let areaCharge, rateType, rateValue;
+  if(aRate > 0)       { areaCharge = aRate * area * hrs; rateType='area';  rateValue=aRate; }
+  else if(hrRate > 0) { areaCharge = hrRate * hrs;       rateType='hour';  rateValue=hrRate; }
+  else if(mRate > 0)  { areaCharge = mRate;              rateType='month'; rateValue=mRate; }
+  else                { areaCharge = 0;                  rateType='none';  rateValue=0; }
+  return { areaCharge, minCharge, rateType, rateValue, area, hrs };
 }
 // คำนวณค่าใช้จ่าย OT รายวัน (ไม่ใช่ Monthly) — คำนวณในเว็บเองแทนการอ่านค่าจาก Sheet
 // เพื่อกันปัญหาสูตร/ค่าตายใน Sheet ผิดพลาดโดยไม่รู้ตัว
 function calcDailyCharge(r, rc, hrs){
-  const { areaCharge, minCharge } = calcBaseCharge(r, rc, hrs);
-  return { areaCharge, minCharge, total: minCharge + areaCharge };
+  const base = calcBaseCharge(r, rc, hrs);
+  return Object.assign({}, base, { total: base.minCharge + base.areaCharge });
 }
 
 // คำนวณค่าใช้จ่าย Monthly — ใช้ Rate Code เดียวที่ Admin เลือกไว้ตรงๆ
 // ขั้นต่ำ/ค่าบริการ (ถ้ามี) คิดคูณด้วยจำนวนวันที่ขอใช้งานจริง (ไม่ใช่คิดครั้งเดียว)
 function calcMonthlyCharge(r, rc, mHrs){
-  const { areaCharge, minCharge } = calcBaseCharge(r, rc, mHrs);
+  const base = calcBaseCharge(r, rc, mHrs);
+  const { areaCharge, minCharge } = base;
   let dayCount = parseMonthlyDayCount(r['Remark']);
   if(!dayCount){
     const {sd, ed} = parseMonthlyDateRange(r);
@@ -4115,7 +4122,16 @@ function calcMonthlyCharge(r, rc, mHrs){
     }
   }
   const minChargeTotal = (minCharge>0 && dayCount>0) ? minCharge*dayCount : minCharge;
-  return { areaCharge, minCharge: minChargeTotal, dayCount, minChargePerDay: minCharge };
+  return Object.assign({}, base, { areaCharge, minCharge: minChargeTotal, dayCount, minChargePerDay: minCharge });
+}
+// สร้างข้อความสูตรคำนวณ Area Charge แบบที่ทวนสอบด้วยตาได้ทันที (อัตรา × พื้นที่/ชั่วโมง = ผลลัพธ์)
+function formatRateFormula(info){
+  if(!info) return '';
+  const { rateType, rateValue, area, hrs, areaCharge } = info;
+  if(rateType==='area')  return `฿${num(rateValue)}/ตร.ม./ชม. × ${area} ตร.ม. × ${hrs.toFixed(2)} ชม. = ฿${num(areaCharge)}`;
+  if(rateType==='hour')  return `฿${num(rateValue)}/ชม. × ${hrs.toFixed(2)} ชม. = ฿${num(areaCharge)}`;
+  if(rateType==='month') return `ค่าบริการคงที่ ฿${num(rateValue)}/เดือน`;
+  return 'ไม่มีอัตราต่อพื้นที่/ชั่วโมงในโค้ดนี้';
 }
 function monthlyBadgeFor(r){
   const isM = !!(r['Monthly_End_Date'] || r['isMonthly'] || (r['Remark']||'').startsWith('[MONTHLY'));
