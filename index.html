@@ -2357,11 +2357,14 @@ function renderCSRows(data, wrap){
     }
     const costDash = !hasActualArea;
     const rowBg = isM ? 'background:rgba(0,180,255,.04)' : '';
+    const rcLevel = rc ? (rc['Tenant_Level Charge']||'Normal') : '';
+    const levelTag = rcLevel ? `<span class="tag" style="background:${rcLevel==='Special'?'rgba(244,114,182,.15);color:#f472b6':'rgba(52,211,153,.15);color:#34d399'}">${rcLevel}</span>` : '—';
     return `<tr style="cursor:pointer;${rowBg}" onclick="showCSDetail(${i})">
       <td><strong style="color:var(--accent)">${r['OT-AIR Work Request No.']||'—'}</strong>${monthlyBadgeFor(r)}</td>
       <td style="font-size:11px">${r['Name']||'—'}</td>
       <td>${bldTag(r['Building'])}</td>
       <td><strong>${r['Space']||'—'}</strong></td>
+      <td>${levelTag}</td>
       <td style="font-size:10px;color:var(--accent)">${(r['Code OT Air_Fee']||r['Code OT Air']||'—').replace('XXXCH_OT_AIR_','')}</td>
       <td style="color:${isM?'#00b4ff':'inherit'}">${hrsDisp}</td>
       <td>${r['Cal_Rent Area(SQ.M)']||'—'} m²</td>
@@ -2371,7 +2374,7 @@ function renderCSRows(data, wrap){
     </tr>`;
   }).join('');
   wrap.innerHTML=`<div class="table-wrap"><table>
-    <thead><tr><th>เลขที่</th><th>Tenant</th><th>Bld</th><th>Space</th><th>Rate Code</th><th>ชั่วโมง</th><th>พื้นที่</th><th>ขั้นต่ำ</th><th>Area Charge</th><th>รวม (฿)</th></tr></thead>
+    <thead><tr><th>เลขที่</th><th>Tenant</th><th>Bld</th><th>Space</th><th>Level</th><th>Rate Code</th><th>ชั่วโมง</th><th>พื้นที่</th><th>ขั้นต่ำ</th><th>Area Charge</th><th>รวม (฿)</th></tr></thead>
     <tbody>${rows}</tbody>
   </table></div><div style="font-size:10px;color:var(--text3);padding:8px 12px">คลิกแถวเพื่อดูรายละเอียด</div>`;
 }
@@ -2566,6 +2569,17 @@ async function submitAssign(){
   // ใช้ index จาก dataset ที่ set ตอน doAssign (ไม่ต้อง findIndex อีก)
   const preIdx = reqEl&&reqEl.dataset.idx!==undefined ? parseInt(reqEl.dataset.idx) : -1;
   const idx = preIdx>=0 ? preIdx : gData.buildingAssigns.findIndex(r=>r['OT-AIR Work Request No.']===req);
+  // ถ้าเป็นคำขอ Monthly และมีการแก้วันที่ ต้องสร้าง Remark/จำนวนชั่วโมงรวมใหม่ทุกครั้ง
+  // ไม่งั้น Remark จะค้างข้อมูลเก่า ทำให้คำนวณขั้นต่ำ/ชั่วโมงผิดพลาดมหาศาล (ยึดวันที่เก่าตลอด)
+  let monthlyUpdate = null;
+  if(startDateISO && finishDateISO){
+    const tRow = gData.tenantReqs.find(r=>r['OT-AIR Work Request No.']===req);
+    const oldRemark = tRow ? (tRow['Remark']||'') : '';
+    const isMonthlyReq = oldRemark.startsWith('[MONTHLY') || !!(tRow && tRow['Monthly_Total_Hours']);
+    if(isMonthlyReq){
+      monthlyUpdate = regenerateMonthlyRemark(oldRemark, startDateISO, finishDateISO);
+    }
+  }
   if(idx>=0){
     gData.buildingAssigns[idx]['Staff Name']=staff;
     gData.buildingAssigns[idx]['Shift']=shift;
@@ -2584,6 +2598,24 @@ async function submitAssign(){
       if(finishDateB) gData.tenantReqs[tIdx]['Finish Date']=finishDateB;
       if(startTime) gData.tenantReqs[tIdx]['Start time']=startTime;
       if(finishTime) gData.tenantReqs[tIdx]['Finish time']=finishTime;
+      if(monthlyUpdate){
+        gData.tenantReqs[tIdx]['Remark']=monthlyUpdate.remark;
+        gData.tenantReqs[tIdx]['Monthly_End_Date']=finishDateB;
+        gData.tenantReqs[tIdx]['Monthly_Total_Hours']=monthlyUpdate.totalHours;
+        gData.tenantReqs[tIdx]['Monthly_Total_Days']=monthlyUpdate.dayCount;
+      }
+    }
+    // Sync ไปที่ CS Report ด้วย (คนละ array/ชีตกับ Tenant) กันหน้า "รายละเอียดการคำนวณ" ยึดข้อมูลเก่าค้างอยู่
+    const csIdx=gData.csReport.findIndex(r=>r['OT-AIR Work Request No.']===req);
+    if(csIdx>=0){
+      if(startDateB){ gData.csReport[csIdx]['Start Date']=startDateB; gData.csReport[csIdx]['Date']=startDateB; }
+      if(finishDateB) gData.csReport[csIdx]['Finish Date']=finishDateB;
+      if(monthlyUpdate){
+        gData.csReport[csIdx]['Remark']=monthlyUpdate.remark;
+        gData.csReport[csIdx]['Monthly_End_Date']=finishDateB;
+        gData.csReport[csIdx]['Monthly_Total_Hours']=monthlyUpdate.totalHours;
+        gData.csReport[csIdx]['Monthly_Total_Days']=monthlyUpdate.dayCount;
+      }
     }
     const eIdx=gData.engWork.findIndex(r=>r['OT-AIR Work Request No.']===req);
     if(eIdx>=0){
@@ -2597,8 +2629,11 @@ async function submitAssign(){
   if(USE_LIVE_API) await apiGET({action:'assign',data:encodeURIComponent(JSON.stringify({
     reqNo:req,staffName:staff,shift,codeOtAir:code,billingDatePeriod:billing,
     startDate:startDateB,finishDate:finishDateB,startTime,finishTime,
+    monthlyRemark: monthlyUpdate ? monthlyUpdate.remark : '',
+    monthlyTotalHours: monthlyUpdate ? monthlyUpdate.totalHours : '',
+    monthlyTotalDays: monthlyUpdate ? monthlyUpdate.dayCount : '',
   }))});
-  renderBuildingTable(); renderTenantTable(); renderEngTable(); updateAllStats();
+  renderBuildingTable(); renderTenantTable(); renderEngTable(); renderCSTable(); updateAllStats();
   closeMod('mod-assign');
   toast('✅ มอบหมาย '+req+' → '+staff+(USE_LIVE_API?' (Sync แล้ว)':''));
 }
@@ -4020,6 +4055,20 @@ function parseMonthlyHours(remark){
 function parseMonthlyDayCount(remark){
   try{ const m=String(remark||'').match(/(\d+)\s*วัน\s*[×xX]/); if(m) return parseInt(m[1])||0; }catch(e){}
   return 0;
+}
+
+// สร้าง Remark ของ Monthly ใหม่ ตามช่วงวันที่ที่แก้ไข (คงจำนวนชั่วโมง/วันเดิมไว้ แต่คำนวณจำนวนวัน/ชั่วโมงรวมใหม่)
+// ใช้ตอน CLS แก้ไขวันที่ขอเปิด-ปิด เพื่อไม่ให้ Remark ค้างข้อมูลเก่า (ทำให้คำนวณขั้นต่ำ/ชั่วโมงผิดเป็นหมื่น)
+function regenerateMonthlyRemark(oldRemark, sdISO, edISO){
+  const hm = String(oldRemark||'').match(/×\s*([\d.]+)\s*ชม\./);
+  const hoursPerDay = hm ? parseFloat(hm[1]) : 0;
+  const d1 = new Date(sdISO+'T00:00:00'), d2 = new Date(edISO+'T00:00:00');
+  let dayCount = parseMonthlyDayCount(oldRemark) || 1;
+  if(!isNaN(d1) && !isNaN(d2) && d2>=d1) dayCount = Math.round((d2-d1)/86400000)+1;
+  const totalHours = +(dayCount*hoursPerDay).toFixed(2);
+  const tail = String(oldRemark||'').replace(/^\[MONTHLY[^\]]*\]/,'').trim();
+  const remark = `[MONTHLY ${sdISO} ถึง ${edISO} | ${dayCount} วัน × ${hoursPerDay.toFixed(1)} ชม. = ${totalHours.toFixed(2)} ชม.รวม]`+(tail?' '+tail:'');
+  return { remark, dayCount, totalHours };
 }
 
 // ดึงช่วงวันที่ (เริ่ม-สิ้นสุด) ของคำขอ Monthly จากฟิลด์ตรงๆ ก่อน แล้วค่อย fallback ไปพาร์สจาก Remark
