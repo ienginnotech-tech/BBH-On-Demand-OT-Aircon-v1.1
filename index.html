@@ -869,7 +869,7 @@ tbody tr:hover td{background:rgba(0,210,180,.04)}
         <div class="page" id="page-monitor">
           <div class="sh">
             <div><div class="sh-title">📈 Monitoring Dashboard</div>
-            <div class="sh-sub">ภาพรวมทุกอาคาร เปรียบเทียบรายเดือน — สำหรับ Admin เท่านั้น</div></div>
+            <div class="sh-sub">ภาพรวมและเปรียบเทียบรายเดือน — Admin เห็นทุกอาคาร / CLS เห็นเฉพาะอาคารตัวเอง</div></div>
             <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
               <select class="fselect" id="mon-bld" style="width:auto;min-width:110px" onchange="renderMonitoring()">
                 <option value="">ทุกอาคาร</option>
@@ -1639,8 +1639,9 @@ const NAV_CONFIG = {
   tenant:   [{id:'tenant',   icon:'🏢', label:'OT Request',   badge:()=>gData.tenantReqs.filter(r=>getStatus(r)==='pending').length},
              {id:'settings', icon:'⚙️', label:'Display',        badge:()=>0}],
 
-  // 2. CLS: เห็น TENANT / CLS / ENGINEERING / CLS REPORT / SENT TO YARDI + Settings (Theme only)
-  cs:       [{id:'tenant',   icon:'🏢', label:'Tenant',        badge:()=>_badge.tenantPending(), section:'PROCESS OT-AIR'},
+  // 2. CLS: เห็น TENANT / CLS / ENGINEERING / CLS REPORT / SENT TO YARDI + Monitoring (เฉพาะอาคารตัวเอง) + Settings (Theme only)
+  cs:       [{id:'monitor',  icon:'📈', label:'Monitoring',     badge:()=>0, section:'OVERVIEW'},
+             {id:'tenant',   icon:'🏢', label:'Tenant',        badge:()=>_badge.tenantPending(), section:'PROCESS OT-AIR'},
              {id:'building', icon:'🏗️', label:'CLS',           badge:()=>_badge.clsPending(), section:'PROCESS OT-AIR'},
              {id:'eng',      icon:'🔧', label:'Engineering',    badge:()=>_badge.engPending(), section:'PROCESS OT-AIR'},
              {id:'cs',       icon:'📊', label:'CLS Report',     badge:()=>0, section:'REPORT'},
@@ -4602,12 +4603,29 @@ const MON_WIDGETS = [
   {id:'w7', label:'7. ค่า OT-Air รวม เรียงตามบริษัท/พื้นที่'},
   {id:'w8', label:'8. Prediction แนวโน้มรายได้ รายเดือน/รายปี'},
 ];
-function getMonWidgetConfig(){
-  try{ const s=localStorage.getItem('bbh_dashboard_widgets'); if(s) return Object.assign(_monDefaultCfg(),JSON.parse(s)); }catch(e){}
-  return _monDefaultCfg();
+let _monWidgetCfgCache = null;
+async function getMonWidgetConfig(){
+  if(_monWidgetCfgCache) return _monWidgetCfgCache;
+  // ลอง cache จาก localStorage ก่อน (โหลดไว ไม่กระพริบ) แล้วค่อย sync ของจริงจาก Sheet ทีหลัง
+  let cfg = _monDefaultCfg();
+  try{ const s=localStorage.getItem('bbh_dashboard_widgets'); if(s) cfg=Object.assign(cfg,JSON.parse(s)); }catch(e){}
+  if(USE_LIVE_API){
+    try{
+      const res = await apiGET({action:'getDashboardConfig'});
+      if(res && res.config){ cfg = Object.assign(_monDefaultCfg(), res.config); try{localStorage.setItem('bbh_dashboard_widgets', JSON.stringify(cfg));}catch(e){} }
+    }catch(e){ console.warn('getDashboardConfig error:', e); }
+  }
+  _monWidgetCfgCache = cfg;
+  return cfg;
 }
 function _monDefaultCfg(){ const c={}; MON_WIDGETS.forEach(w=>c[w.id]=true); return c; }
-function saveMonWidgetConfig(cfg){ try{ localStorage.setItem('bbh_dashboard_widgets', JSON.stringify(cfg)); }catch(e){} }
+async function saveMonWidgetConfig(cfg){
+  _monWidgetCfgCache = cfg;
+  try{ localStorage.setItem('bbh_dashboard_widgets', JSON.stringify(cfg)); }catch(e){}
+  if(USE_LIVE_API){
+    try{ await apiGET({action:'saveDashboardConfig', data:encodeURIComponent(JSON.stringify(cfg))}); }catch(e){ console.warn('saveDashboardConfig error:', e); }
+  }
+}
 
 // ---- lightweight SVG chart helpers (ไม่พึ่ง library ภายนอก ใช้สี CSS var ของธีมปัจจุบัน) ----
 function svgBarChart(items, opt){
@@ -4699,12 +4717,20 @@ function _monPopulateMonths(){
   sel.dataset.filled='1';
 }
 
-function renderMonitoring(){
+async function renderMonitoring(){
   const wrap = document.getElementById('monitor-wrap');
   if(!wrap) return;
   _monPopulateMonths();
-  const cfg = getMonWidgetConfig();
-  const bldFilter = document.getElementById('mon-bld')?.value || '';
+  const cfg = await getMonWidgetConfig();
+
+  // Building scoping: Admin เห็นทุกอาคาร (เลือกได้อิสระ) / CLS เห็นเฉพาะอาคารตัวเอง (ล็อก dropdown)
+  const bldSel = document.getElementById('mon-bld');
+  const isScoped = currentRole !== 'admin' && currentBuilding && currentBuilding !== 'ALL';
+  if(bldSel){
+    if(isScoped){ bldSel.value = currentBuilding; bldSel.disabled = true; }
+    else { bldSel.disabled = false; }
+  }
+  const bldFilter = isScoped ? currentBuilding : (document.getElementById('mon-bld')?.value || '');
   const monthFilter = document.getElementById('mon-month')?.value || '';
 
   const matchDate = (r) => {
@@ -4943,21 +4969,21 @@ function renderMonitoring(){
 }
 
 // ---- Settings: เลือกว่าจะแสดง Widget ไหนใน Monitoring Dashboard (Admin เท่านั้น) ----
-function renderMonDashboardSettings(){
+async function renderMonDashboardSettings(){
   const el = document.getElementById('mon-widget-settings');
   if(!el) return;
-  const cfg = getMonWidgetConfig();
+  const cfg = await getMonWidgetConfig();
   el.innerHTML = MON_WIDGETS.map(w=>`
     <label style="display:flex;align-items:center;gap:8px;padding:8px 0;font-size:12px;color:var(--text2);cursor:pointer">
       <input type="checkbox" ${cfg[w.id]?'checked':''} onchange="toggleMonWidget('${w.id}',this.checked)">
       ${w.label}
     </label>`).join('');
 }
-function toggleMonWidget(id, checked){
-  const cfg = getMonWidgetConfig();
+async function toggleMonWidget(id, checked){
+  const cfg = await getMonWidgetConfig();
   cfg[id] = checked;
-  saveMonWidgetConfig(cfg);
-  toast(checked ? '✅ เปิดแสดง Widget แล้ว' : '🚫 ซ่อน Widget แล้ว');
+  await saveMonWidgetConfig(cfg);
+  toast(checked ? '✅ เปิดแสดง Widget แล้ว (Sync ไปทุกคนแล้ว)' : '🚫 ซ่อน Widget แล้ว (Sync ไปทุกคนแล้ว)');
 }
 
 </script>
