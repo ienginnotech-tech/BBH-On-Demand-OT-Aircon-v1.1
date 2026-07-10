@@ -4440,7 +4440,7 @@ function generateYADI() {
       PROPERTY: propCode,                     // #2 ใช้ property code แทน building name
       PERSON: tcode,
       OFFSET: 'UTLOVE',
-      AMONTH: amount.toFixed(2),
+      AMOUNT: amount.toFixed(2),
       DATE: fmtDate(parseDate(r['Close_OT-Air(Date)'] || r['Open_OT-Air(Date)'] || startD)), // DATE = วันที่ปิดแอร์จริง
       POSTMONTH: dates.postMonth,
       FROMDATE: dates.fromDate,
@@ -4491,7 +4491,7 @@ function renderYADITable(rows) {
       + '<td>'+bldTag(r.PROPERTY)+'</td>'
       + '<td style="font-size:10px;color:var(--purple)">'+r.PERSON+'</td>'
       + '<td><span class="tag t-gray">'+r.OFFSET+'</span></td>'
-      + '<td style="text-align:right;color:var(--accent)"><strong>'+Number(r.AMONTH).toLocaleString()+'</strong></td>'
+      + '<td style="text-align:right;color:var(--accent)"><strong>'+Number(r.AMOUNT).toLocaleString()+'</strong></td>'
       + '<td style="font-size:11px">'+r.DATE+'</td>'
       + '<td style="font-size:11px">'+r.POSTMONTH+'</td>'
       + '<td style="font-size:11px;color:var(--green)">'+r.FROMDATE+'</td>'
@@ -4529,7 +4529,7 @@ function renderYADICompanies(rows) {
         + '<td style="font-size:11px;color:var(--text2)">'+noteShort+'</td>'
         + '<td style="font-size:11px;color:var(--green)">'+r.FROMDATE+'</td>'
         + '<td style="font-size:11px;color:var(--amber)">'+r.TODATE+'</td>'
-        + '<td style="text-align:right"><strong style="color:var(--accent)">'+Number(r.AMONTH).toLocaleString()+'</strong></td>'
+        + '<td style="text-align:right"><strong style="color:var(--accent)">'+Number(r.AMOUNT).toLocaleString()+'</strong></td>'
         + '</tr>';
     }).join('');
     return '<div class="card" style="margin-bottom:12px">'
@@ -4555,7 +4555,7 @@ function renderYADICompanies(rows) {
 
 function exportYADI_CSV() {
   if (!yadiData.length) { toast('กรุณาสร้างตารางก่อน'); return; }
-  var headers = ['TRANNUM','PROPERTY','PERSON','OFFSET','AMONTH',
+  var headers = ['TRANNUM','PROPERTY','PERSON','OFFSET','AMOUNT',
                  'DATE','POSTMONTH','FROMDATE','TODATE','NOTES','DOCUMENTSEQUENCENUMBER'];
   var dataRows = yadiData.map(function(r) {
     return headers.map(function(h){ return '"'+(r[h]||'')+'"'; }).join(',');
@@ -4575,7 +4575,7 @@ function exportYADI_CSV() {
 
 function exportYADI_Full() {
   if (!yadiData.length) { toast('กรุณาสร้างตารางก่อน'); return; }
-  var headers = ['TRANNUM','PROPERTY','PERSON','OFFSET','AMONTH',
+  var headers = ['TRANNUM','PROPERTY','PERSON','OFFSET','AMOUNT',
                  'DATE','POSTMONTH','FROMDATE','TODATE','NOTES',
                  'DOCUMENTSEQUENCENUMBER','Unit','Tenant','StartDate','StartTime','FinishTime','Area'];
   var rows2 = yadiData.map(function(r) {
