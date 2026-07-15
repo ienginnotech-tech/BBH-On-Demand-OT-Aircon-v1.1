@@ -883,6 +883,13 @@ tbody tr:hover td{background:rgba(0,210,180,.04)}
               <button class="btn btn-p btn-sm" onclick="renderMonitoring()">🔄 รีเฟรช</button>
             </div>
           </div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:0 20px 12px;margin-top:-8px">
+            <span style="font-size:11px;color:var(--text2)">📅 หรือระบุ<strong style="color:var(--accent)">ช่วงวันที่เอง</strong> (ใช้แทนตัวกรองปี/เดือน/วันด้านบนทันทีถ้าใส่ครบทั้งคู่):</span>
+            <input class="finput" type="date" id="mo-range-from" style="width:auto" onchange="renderMonitoring()">
+            <span style="color:var(--text3);font-size:11px">ถึง</span>
+            <input class="finput" type="date" id="mo-range-to" style="width:auto" onchange="renderMonitoring()">
+            <button class="btn btn-o btn-sm" onclick="document.getElementById('mo-range-from').value='';document.getElementById('mo-range-to').value='';renderMonitoring()">✕ ล้างช่วงวันที่</button>
+          </div>
           <div id="monitor-wrap"><div class="loading"><span class="spinner"></span>กำลังโหลด...</div></div>
         </div>
 
@@ -1334,6 +1341,24 @@ tbody tr:hover td{background:rgba(0,210,180,.04)}
                 </div>
                 <div class="fg" style="padding-top:18px">
                   <button class="btn btn-p" onclick="generateYADI()">⚡ สร้างตาราง</button>
+                </div>
+              </div>
+              <div style="margin-top:14px;padding-top:14px;border-top:1px dashed var(--border2)">
+                <div style="font-size:11px;color:var(--text2);margin-bottom:8px">
+                  📅 หรือเลือก<strong style="color:var(--accent)">ช่วงวันที่เอง</strong>ตามรอบเก็บเงินจริง (ถ้าใส่ช่วงนี้ จะใช้แทน "เดือนที่ต้องการวางบิล" ด้านบนทันที — กรองจากวันที่ปิดแอร์จริง)
+                </div>
+                <div class="form-grid" style="align-items:flex-end">
+                  <div class="fg">
+                    <label class="flabel">จากวันที่ (FROM)</label>
+                    <input class="finput" type="date" id="yadi-range-from" onchange="onYadiRangeChange()">
+                  </div>
+                  <div class="fg">
+                    <label class="flabel">ถึงวันที่ (TO)</label>
+                    <input class="finput" type="date" id="yadi-range-to" onchange="onYadiRangeChange()">
+                  </div>
+                  <div class="fg" style="padding-top:18px">
+                    <button class="btn btn-o btn-sm" onclick="document.getElementById('yadi-range-from').value='';document.getElementById('yadi-range-to').value='';toast('ล้างช่วงวันที่แล้ว — ใช้เดือนที่เลือกไว้ด้านบนแทน');if(v('yadi-month'))generateYADI();">✕ ล้างช่วงวันที่</button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -2462,8 +2487,19 @@ function renderCSTable(){
   renderCSRows(data, document.getElementById('cs-table-wrap'));
 }
 
+// ตรวจว่างานนี้ถูกยกเลิก/แจ้งซ้ำแล้วหรือไม่ (เช็คทั้งจุดที่ CLS ปฏิเสธ และจุดที่ Engineering ปฏิเสธ)
+// งานที่ถูกยกเลิกต้องไม่ถูกนำไปคิดเงิน/ออกบิลกับลูกค้าเด็ดขาด
+function isRejectedReq(r){
+  const reqNo = r['OT-AIR Work Request No.']||'';
+  if(getStatus(r)==='rejected') return true;
+  const eRow = (gData.engWork||[]).find(e=>e['OT-AIR Work Request No.']===reqNo);
+  if(eRow && eRow['Engineering Action(Acknowledge/Reject)']==='Reject') return true;
+  return false;
+}
 function renderCSRows(data, wrap){
   if(!wrap) return;
+  // ตัดรายการที่ถูก ยกเลิก/แจ้งซ้ำ (Reject) ออกก่อนเสมอ — งานที่ยกเลิกแล้วต้องไม่ถูกคิดเงินกับลูกค้า
+  data = data.filter(r => !isRejectedReq(r));
   if(!data.length){wrap.innerHTML=emptyState('ไม่มีข้อมูล');return;}
   const rows = data.map((r,i)=>{
     const isM = !!(r['Monthly_Total_Hours'] || (r['Remark']||'').startsWith('[MONTHLY'));
@@ -4637,6 +4673,11 @@ function initYadiBld(){
   }
 }
 
+// เรียกอัตโนมัติทุกครั้งที่เปลี่ยนช่วงวันที่ FROM/TO — สร้างตารางให้เลยทันทีที่กรอกครบทั้งคู่ ไม่ต้องกดปุ่ม "สร้างตาราง" แยก
+function onYadiRangeChange(){
+  const from = v('yadi-range-from'), to = v('yadi-range-to');
+  if(from && to) generateYADI();
+}
 function generateYADI() {
   var monthVal = document.getElementById('yadi-month').value;
   var bldFilter = v('yadi-bld');
@@ -4645,8 +4686,13 @@ function generateYADI() {
     bldFilter = currentBuilding;
   }
   var billingDay = v('yadi-billing-day');
-  if (!monthVal) { toast('กรุณาเลือกเดือน'); return; }
-  var parts = monthVal.split('-');
+  // ช่วงวันที่เอง (FROM/TO) — ถ้าใส่ทั้งคู่ จะใช้แทนการเลือกเดือนด้านบนทันที
+  var rangeFrom = v('yadi-range-from');
+  var rangeTo = v('yadi-range-to');
+  var useRange = !!(rangeFrom && rangeTo);
+  if (useRange && rangeFrom > rangeTo) { toast('⚠️ วันที่เริ่มต้องมาก่อนวันที่สิ้นสุด'); return; }
+  if (!useRange && !monthVal) { toast('กรุณาเลือกเดือน หรือระบุช่วงวันที่เอง'); return; }
+  var parts = monthVal ? monthVal.split('-') : ['',''];
   var year = parseInt(parts[0]);
   var month = parseInt(parts[1]);
 
@@ -4686,18 +4732,21 @@ function generateYADI() {
 
   function calcDates(startDateStr, bilDay) {
     var dObj = parseDate(startDateStr);
-    if (!dObj || isNaN(dObj)) return { postMonth:'', fromDate:'', toDate:'' };
+    if (!dObj || isNaN(dObj)) return { postMonth:'', fromDate:'', toDate:'', invoiceDate:'' };
     var bd = parseInt(bilDay) || 5;
-    // POSTMONTH = วันที่ 1 ของเดือนเดียวกับ DATE
-    var pm = new Date(dObj.getFullYear(), dObj.getMonth(), 1);
-    // FROMDATE = วันที่ billingDay ของเดือนเดียวกับ POSTMONTH (ไม่บวกเดือน)
-    var fd = new Date(pm.getFullYear(), pm.getMonth(), bd);
-    // TODATE = FROMDATE + 1 เดือน - 1 วัน
-    var td = new Date(fd.getFullYear(), fd.getMonth() + 1, bd - 1);
-    return { postMonth: fmtDate(pm), fromDate: fmtDate(fd), toDate: fmtDate(td) };
+    // FROMDATE = วันที่ (รอบวางบิล+1) ของเดือนเดียวกับวันที่แจ้งคำขอ
+    // เช่น แจ้ง 1/7 รอบวางบิลวันที่ 5 -> FROMDATE = 6/7 (รอบตัดรอบใหม่เริ่มถัดจากวันวางบิลเดิม 1 วัน)
+    var fd = new Date(dObj.getFullYear(), dObj.getMonth(), bd + 1);
+    // TODATE = วันที่รอบวางบิล ของเดือนถัดไป (ครบรอบ 1 เดือนเต็มพอดี)
+    var td = new Date(dObj.getFullYear(), dObj.getMonth() + 1, bd);
+    // DATE (วันที่ออกใบแจ้งหนี้) = วันที่ 5 คงที่เสมอ แต่เดือน/ปี อ้างอิงตามเดือนของ TODATE
+    var invD = new Date(td.getFullYear(), td.getMonth(), 5);
+    // POSTMONTH = วันที่ 1 ของเดือนเดียวกับ TODATE/DATE (เดือนที่ใบแจ้งหนี้นี้ถูกจัดเข้ารอบ)
+    var pm = new Date(td.getFullYear(), td.getMonth(), 1);
+    return { postMonth: fmtDate(pm), fromDate: fmtDate(fd), toDate: fmtDate(td), invoiceDate: fmtDate(invD) };
   }
 
-  // สร้าง reject map จาก Building_OT Assign
+  // สร้าง reject map จาก Building_OT Assign (เก็บไว้เผื่อใช้อ้างอิง)
   var rejectMap = {};
   bldData.forEach(function(r) {
     if (String(r['Admin helpdesk (Acknowledge/Reject)']||'').toLowerCase() === 'reject') {
@@ -4705,15 +4754,23 @@ function generateYADI() {
     }
   });
 
-  // Filter เดือน POSTMONTH = เดือนเดียวกับ DATE ที่ Tenant แจ้ง (ตัด Rejected ออก)
+  // Filter: ถ้าใส่ช่วงวันที่เอง (FROM/TO) กรองจากวันที่ปิดแอร์จริงตรงๆ ในช่วงนั้น
+  // ถ้าไม่ใส่ ใช้ POSTMONTH ตามรอบวางบิลจริงเหมือนเดิม (ตัด Rejected ออกเสมอทั้ง 2 โหมด)
   var filtered = csData.filter(function(r) {
-    if (rejectMap[r['OT-AIR Work Request No.']]) return false; // ตัด Rejected
-    // ใช้วันที่ปิดแอร์จริง เพื่อให้ billing ตรงกับเดือนที่ปิดงาน
+    if (rejectMap[r['OT-AIR Work Request No.']] || isRejectedReq(r)) return false; // ตัด Rejected/ยกเลิก ออกเสมอ ห้ามคิดเงินลูกค้า
     var closeD = r['Close_OT-Air(Date)'] || r['Open_OT-Air(Date)'] || r['Start Date'] || r['Date'] || '';
     var dObj = parseDate(closeD);
     if (!dObj || isNaN(dObj)) return false;
-    var pm = new Date(dObj.getFullYear(), dObj.getMonth(), 1);
-    return pm.getMonth() + 1 === month && pm.getFullYear() === year;
+    if (useRange) {
+      var iso = dObj.getFullYear()+'-'+String(dObj.getMonth()+1).padStart(2,'0')+'-'+String(dObj.getDate()).padStart(2,'0');
+      return iso >= rangeFrom && iso <= rangeTo;
+    }
+    var bilDayForFilter = billingMap[r['OT-AIR Work Request No.']] || '5';
+    var d = calcDates(closeD, bilDayForFilter);
+    if (!d.postMonth) return false;
+    var pmObj = parseDate(d.postMonth);
+    if (!pmObj || isNaN(pmObj)) return false;
+    return pmObj.getMonth() + 1 === month && pmObj.getFullYear() === year;
   });
 
   if (bldFilter) filtered = filtered.filter(function(r){ return r['Building'] === bldFilter; });
@@ -4739,6 +4796,19 @@ function generateYADI() {
 
   var MONTHS = ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
+  // โหมดช่วงวันที่เอง — ทุกแถวใช้ FROMDATE/TODATE/DATE/POSTMONTH ชุดเดียวกันตามที่ผู้ใช้ระบุตรงๆ
+  // (ไม่คำนวณรอบวางบิลแยกตาม Billing Day ของแต่ละแถวอีกต่อไป เพราะผู้ใช้ตั้งใจกำหนดรอบบิลเองแบบ ad-hoc)
+  var uniformDates = null;
+  if (useRange) {
+    var rfParts = rangeFrom.split('-'), rtParts = rangeTo.split('-');
+    var rfStr = rfParts[2]+'/'+rfParts[1]+'/'+rfParts[0];
+    var rtObj = new Date(parseInt(rtParts[0]), parseInt(rtParts[1])-1, parseInt(rtParts[2]));
+    var rtStr = rtParts[2]+'/'+rtParts[1]+'/'+rtParts[0];
+    var invD = new Date(rtObj.getFullYear(), rtObj.getMonth(), 5);
+    var pm = new Date(rtObj.getFullYear(), rtObj.getMonth(), 1);
+    uniformDates = { postMonth: fmtDate(pm), fromDate: rfStr, toDate: rtStr, invoiceDate: fmtDate(invD) };
+  }
+
   // Property code map ตาม building
   function mapProperty(bld) {
     if (bld === 'BTE') return 'btebrro1';
@@ -4753,7 +4823,7 @@ function generateYADI() {
     var startD  = r['Start Date'] || r['Date'] || '';
     var bilDay  = billingMap[r['OT-AIR Work Request No.']] || '5';
     var closeD  = r['Close_OT-Air(Date)'] || r['Open_OT-Air(Date)'] || startD;
-    var dates   = calcDates(closeD, bilDay);
+    var dates   = uniformDates || calcDates(closeD, bilDay);
     var amount  = parseFloat(String(r['Total Cost OT.Air(Rate Charge+Area)_THB']||'0').replace(/,/g,'')) || 0;
     var openT   = r['Open_OT-Air(Time)'] || r['Start time'] || '';
     var closeT  = r['Close_OT-Air(Time)'] || r['Finish time'] || '';
@@ -4776,7 +4846,7 @@ function generateYADI() {
       PERSON: tcode,
       OFFSET: 'UTLOVE',
       AMOUNT: amount.toFixed(2),
-      DATE: fmtDate(parseDate(r['Close_OT-Air(Date)'] || r['Open_OT-Air(Date)'] || startD)), // DATE = วันที่ปิดแอร์จริง
+      DATE: dates.invoiceDate, // DATE = วันที่ออกใบแจ้งหนี้ (วันที่ 5 คงที่ ของเดือนตาม TODATE)
       POSTMONTH: dates.postMonth,
       FROMDATE: dates.fromDate,
       TODATE: dates.toDate,
@@ -4808,7 +4878,11 @@ function generateYADI() {
 
   var TH_MONTHS = ['','มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน',
     'กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
-  document.getElementById('yadi-period-label').textContent = TH_MONTHS[month] + ' ' + (year + 543);
+  if (useRange) {
+    document.getElementById('yadi-period-label').textContent = 'ช่วงวันที่ ' + fmtDate(parseDate(rangeFrom.split('-').reverse().join('/'))) + ' – ' + fmtDate(parseDate(rangeTo.split('-').reverse().join('/')));
+  } else {
+    document.getElementById('yadi-period-label').textContent = TH_MONTHS[month] + ' ' + (year + 543);
+  }
 
   renderYADITable(rows);
   renderYADICompanies(rows);
@@ -5070,7 +5144,21 @@ async function renderMonitoring(){
     else { bldSel.disabled = false; }
   }
   const bldFilter = isScoped ? currentBuilding : (document.getElementById('mon-bld')?.value || '');
-  const matchDate = (r) => applySearchDateFilter([r], 'mo', x=>x['Date'], ()=> '').length>0;
+  const rangeFrom = document.getElementById('mo-range-from')?.value || '';
+  const rangeTo = document.getElementById('mo-range-to')?.value || '';
+  const useRange = !!(rangeFrom && rangeTo);
+  ['mo-year','mo-month','mo-day'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.disabled = useRange;
+  });
+  const matchDate = (r) => {
+    if(useRange){
+      const iso = normalizeDateToISO(r['Date']);
+      if(!iso) return false;
+      return iso >= rangeFrom && iso <= rangeTo;
+    }
+    return applySearchDateFilter([r], 'mo', x=>x['Date'], ()=> '').length>0;
+  };
   const tReqs = (gData.tenantReqs||[]).filter(r=>(!bldFilter||r['Building']===bldFilter) && matchDate(r));
   const bAssigns = (gData.buildingAssigns||[]).filter(r=>(!bldFilter||r['Building']===bldFilter));
   const eWork = (gData.engWork||[]).filter(r=>(!bldFilter||r['Building']===bldFilter));
