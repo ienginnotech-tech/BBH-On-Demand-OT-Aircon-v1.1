@@ -4457,7 +4457,10 @@ function exportCSV(){
   const keySet = new Set();
   data.forEach(r=>Object.keys(r).forEach(k=>keySet.add(k)));
   const keys=Array.from(keySet);
-  const csv=[keys.join(','),...data.map(r=>keys.map(k=>`"${r[k]||''}"`).join(','))].join('\n');
+  // บาง Header ใน Sheet มีตัวขึ้นบรรทัดใหม่แทรกอยู่ (พิมพ์แบบ Alt+Enter ให้ตัดคำสวยๆ) ถ้าไม่กรองออก
+  // จะทำให้แถวหัวข้อ CSV แตกบรรทัดกลางคัน เปิดใน Excel แล้วดูเหมือนหัวข้อหาย/เลื่อนไม่ตรงกับข้อมูล
+  const clean = s => String(s??'').replace(/[\r\n]+/g,' ').trim();
+  const csv=[keys.map(k=>`"${clean(k)}"`).join(','),...data.map(r=>keys.map(k=>`"${clean(r[k])}"`).join(','))].join('\n');
   const a=document.createElement('a');
   a.href='data:text/csv;charset=utf-8,\uFEFF'+encodeURIComponent(csv);
   a.download='BBH OT Aircon_OT_Report_'+new Date().toISOString().split('T')[0]+'.csv';
